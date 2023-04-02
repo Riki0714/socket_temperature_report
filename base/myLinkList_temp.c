@@ -60,6 +60,11 @@ int list_insert_tail(Node **pHead, Temp_str *tempStr, char * insertElem)
 	Node *pHead_o=*pHead;  
 
 	pIn = (Node *)malloc(sizeof(Node));
+	if(pIn==NULL) 
+	{
+		printf("malloc failure\n");
+		return -1;
+	}
 	memset(pIn, 0, sizeof(Node));
 
 	strncpy(pIn->element, insertElem, 64);
@@ -174,8 +179,13 @@ char * list_get(Node *pHead, int pos)
 
 	while( NULL != pHead )
 	{
+		//printf("%s\n", pHead->element);
 		i++;
-		if( i==pos ) break;
+		if( i==pos )
+		{
+			return pHead->element;
+			//break;
+		}
 		pHead = pHead->next;
 	}
 	if( i<pos )

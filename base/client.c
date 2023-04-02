@@ -236,7 +236,7 @@ int main(int argc, char *argv[])
 		if( !link_flag ) //Failed to connect to the server
 		{
 			//The maximum number of temporary data is 10
-			if(dataIndex<10) dataIndex++;
+			if(dataIndex<100) dataIndex++;
 			else 
 			{
 				dataIndex=1;
@@ -246,9 +246,8 @@ int main(int argc, char *argv[])
 			}
 
 
-
 			//------------ Insert a linked list from the header --------------
-			list_insert_tail(&pList, NULL, serialNum);
+			list_insert_head(&pList, NULL, serialNum);
 			//list_print(pList);
 
 			//------------ Put into database ---------------
@@ -275,11 +274,11 @@ int main(int argc, char *argv[])
 				{
 					dbg_print("relink%d\n", link_flag);
 					int	i=0;
+					char	*buf_o=NULL;
 
 					for( i=dataIndex; i>0; i--)
 					{
 			  			pHead = pList;
-						
 						
 						//The data in the linked list is sent to the server
 						if( write(cli_infor_t.fd, pHead->element, strlen(serialNum)) < 0 )
@@ -306,7 +305,7 @@ int main(int argc, char *argv[])
 					if( link_flag )
 					{
 						dataIndex = 0;
-						list_clear(pList);
+						//list_clear(pList);
 					}
 				} 
 			}
