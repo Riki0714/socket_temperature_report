@@ -39,11 +39,17 @@ typedef struct socket_information{
 } sock_infor;
 */
 
+#define SO_NOSIGPIPE   0x1022
   
 int server_init(sock_infor *serv_infor_t, int backlog)
 {
 	int 					rv = -1, on = 1;
 	int						value = 1;
+	int						keepAlive = 1;
+	int						keepIdle = 60;
+	int						keepInterval = 5;
+	int						keepCount = 3;
+
 	struct sockaddr_in	 	ser_addr;
 
 	if( ( serv_infor_t->fd = socket(AF_INET, SOCK_STREAM, 0)) < 0 )
@@ -54,7 +60,12 @@ int server_init(sock_infor *serv_infor_t, int backlog)
 	printf("socket successfully!\n");
 
 	setsockopt( serv_infor_t->fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
-//	setsockopt( serv_infor_t->fd, SOL_SOCKET, SO_NOSIGPIPE, &value, sizeof(value));
+	setsockopt( serv_infor_t->fd, SOL_SOCKET, SO_NOSIGPIPE, &value, sizeof(value));
+	setsockopt( serv_infor_t->fd, SOL_SOCKET, SO_KEEPALIVE, &value, sizeof(value));
+	setsockopt( serv_infor_t->fd, SOL_TCP, 	TCP_KEEPINTVL, (void *)&keepIdle, sizeof(keepIdle));
+	setsockopt( serv_infor_t->fd, SOL_TCP, 	TCP_KEEPINTVL, (void *)&keepInterval, sizeof(keepInterval));
+	setsockopt( serv_infor_t->fd, SOL_TCP, 	TCP_KEEPINTVL, (void *)&keepCount, sizeof(keepCount));
+
 
 	memset(&ser_addr, 0, sizeof(ser_addr));
 	ser_addr.sin_family = AF_INET;
@@ -105,7 +116,7 @@ int client_init(sock_infor *cli_infor_t)
 	}
 	printf("socket successfully!\n");
 
-//	setsockopt( cli_infor_t->fd, SOL_SOCKET, SO_NOSIGPIPE, &value, sizeof(value));
+	setsockopt( cli_infor_t->fd, SOL_SOCKET, SO_NOSIGPIPE, &value, sizeof(value));
 	setsockopt( cli_infor_t->fd, SOL_SOCKET, SO_KEEPALIVE, &value, sizeof(value));
 	setsockopt( cli_infor_t->fd, SOL_TCP, 	TCP_KEEPINTVL, (void *)&keepIdle, sizeof(keepIdle));
 	setsockopt( cli_infor_t->fd, SOL_TCP, 	TCP_KEEPINTVL, (void *)&keepInterval, sizeof(keepInterval));

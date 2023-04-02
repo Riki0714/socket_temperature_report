@@ -45,9 +45,10 @@
 
 void print_usage(char *proname); //man -- Command line argument parsing
 void sig_alrm(int sig); //sigalrm callback
+void sig_pipe(int sig); //sigalrm callback
 
 int alrm_flag=1; //timer flag
-
+int	link_flag = 0;  //1:have connected to the server   0:unconnected
 
 
 int main(int argc, char *argv[])
@@ -58,7 +59,7 @@ int main(int argc, char *argv[])
 	char 			serialNum[STR_LEN] = {0}; //The obtained temperature string
 	char 		   *serialNum_b = (char *)calloc(0, STR_LEN);
 	int				errorFlag = 0;	//Gets the number of temperature errors
-	int				link_flag = 0;  //1:have connected to the server   0:unconnected
+	//int				link_flag = 0;  //1:have connected to the server   0:unconnected
 	char    		ReceBuf[STR_LEN]={0};  //Stores the data received from the server
 	char			bufToDb[NAME_LEN]={0}; //Data to be temporarily stored in the database
 
@@ -140,6 +141,7 @@ int main(int argc, char *argv[])
 	printf("The entered ip and port are correct!\n");
 	dbg_print("%s %d %d\n", cli_infor_t.ip, cli_infor_t.port, time);
 
+
 	//--------------------- open database --------------------------
 	rv = -1;
 	rv = sqlite3_open(dbName, &db);
@@ -155,6 +157,7 @@ int main(int argc, char *argv[])
 	}
 	dbg_print("Open database successfully! %d\n", rv);
 
+
 	//------------ connect to server -------------
 	printf("Now the client tries the server...\n");
 	if( (rv = client_init(&cli_infor_t) < 0) )
@@ -164,9 +167,11 @@ int main(int argc, char *argv[])
 	}
 	else  link_flag = 1;
 	
+
 	//signal timer
 	//signal(SIGALRM, sig_alrm);
-	signal(SIGPIPE, SIG_IGN);
+	signal(SIGPIPE, sig_pipe);
+
 
 	while(1)
 	{
@@ -193,7 +198,8 @@ int main(int argc, char *argv[])
 		}
 		errorFlag = 0;
 		dbg_print("%s\n", serialNum);
-			
+	
+
 		//------------ Send data to the server -------------
 		if( link_flag )
 		{
@@ -204,8 +210,7 @@ int main(int argc, char *argv[])
 				close(cli_infor_t.fd);
 				link_flag = 0;
 
-				continue;
-				//put into database
+				//continue;
 				//goto EXIT1;
 			}
 
@@ -215,21 +220,33 @@ int main(int argc, char *argv[])
 				printf("read data from server[%d] failure: %s\n", cli_infor_t.fd, strerror(errno));
 				close(cli_infor_t.fd);
 				link_flag = 0;
-				continue;
+				//continue;
 			}
 			else if( rv==0 )
 			{
 				printf("The connection to the server[%d] is disconnected\n", cli_infor_t.fd);
 				close(cli_infor_t.fd);
 				link_flag = 0;
-				continue;
+				//continue;
 			}
-			printf("read %d bytes data from server[%d] and echo it back: '%s\n'", rv, cli_infor_t.fd, ReceBuf);
+			else	printf("read %d bytes data from server[%d] and echo it back: '%s\n'", rv, cli_infor_t.fd, ReceBuf);
 		}
 		
+
 		if( !link_flag ) //Failed to connect to the server
 		{
-			
+			//The maximum number of temporary data is 10
+			if(dataIndex<10) dataIndex++;
+			else 
+			{
+				dataIndex=1;
+				list_clear(pList);
+				sql_op(db, tbName, DROP, NULL);
+				sql_op(db, tbName, CREATE, "id int, content char");
+			}
+
+
+
 			//------------ Insert a linked list from the header --------------
 			list_insert_tail(&pList, NULL, serialNum);
 			//list_print(pList);
@@ -241,15 +258,7 @@ int main(int argc, char *argv[])
 			printf("Successfully put data into the database [%s - %s]\n", dbName, tbName);
 
 
-			//The maximum number of temporary data is 10
-			if(dataIndex<10) dataIndex++;
-			else 
-			{
-				dataIndex=1;
-				list_clear(pList);
-				sql_op(db, tbName, DROP, NULL);
-				sql_op(db, tbName, CREATE, "id int, content char");
-			}
+			dbg_print("1: %d\n", dataIndex);
 			
 			
 			//------------ reconnection --------------------
@@ -261,8 +270,7 @@ int main(int argc, char *argv[])
 			else
 			{
 				link_flag = 1;
-
-				  
+			  	  
 				if(dataIndex>0)
 				{
 					dbg_print("relink%d\n", link_flag);
@@ -284,10 +292,13 @@ int main(int argc, char *argv[])
 						}
 						list_drop_head(&pList);
 						
-						//Delete the data from the database
-						memset(bufToDb, 0, sizeof(bufToDb));
-						snprintf(bufToDb, sizeof(bufToDb), "id=%d", i);
-						sql_op(db, tbName, DELETE, bufToDb);
+						if(link_flag)
+						{
+							//Delete the data from the database
+							memset(bufToDb, 0, sizeof(bufToDb));
+							snprintf(bufToDb, sizeof(bufToDb), "id=%d", i);
+							sql_op(db, tbName, DELETE, bufToDb);
+						}
 
 						if(dataIndex>0) dataIndex--;
 					}
@@ -297,7 +308,7 @@ int main(int argc, char *argv[])
 						dataIndex = 0;
 						list_clear(pList);
 					}
-				}
+				} 
 			}
 
 		}
@@ -348,5 +359,11 @@ void sig_alrm(int sig)
 	}
 //	alarm(5);
 }
+
+void sig_pipe(int sig)
+{
+	link_flag = 0;
+}
+
 
 
