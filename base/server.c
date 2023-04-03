@@ -42,6 +42,13 @@ void usage_print(char *proName)
 	printf("Some parameters about this program[%s]:\n", proName);
 	printf("1.The parameters you must enter:\n");
 	printf("Port: '-p' '--port', such as: -p 6666 \n");
+	printf("\n2.You can choose which parameters to enter:\n");
+	printf("-i(--ipaddr): ip address of client\n");
+	printf("-b(--backlog): listen backlog\n");
+	printf("-d(--daemon): If the value is '1', the server starts background work\n");
+	printf("-a(--databaseName): The name of the database that holds the data received from the client\n");
+	printf("-t(--backlog): The name of the table that holds the data received from the client\n");
+	printf("-h(--help): some help\n");
 }
 
 int main(int argc, char *argv[])

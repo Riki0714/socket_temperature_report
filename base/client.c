@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
 	int				errorFlag = 0;	//Gets the number of temperature errors
 	//int				link_flag = 0;  //1:have connected to the server   0:unconnected
 	char    		ReceBuf[STR_LEN]={0};  //Stores the data received from the server
-	char			bufToDb[NAME_LEN]={0}; //Data to be temporarily stored in the database
+	char			bufToDb[STR_LEN]={0}; //Data to be temporarily stored in the database
 
 	Node 		   *pList = NULL; //A header pointer to hold temporary database
 	Node		   *pHead = NULL; //tmp
@@ -258,8 +258,8 @@ int main(int argc, char *argv[])
 
 
 			dbg_print("1: %d\n", dataIndex);
-			
-			
+
+
 			//------------ reconnection --------------------
 			if( (rv = client_init(&cli_infor_t) < 0) )
 			{
@@ -273,15 +273,18 @@ int main(int argc, char *argv[])
 				if(dataIndex>0)
 				{
 					dbg_print("relink%d\n", link_flag);
-					int	i=0;
 					char	*buf_o=NULL;
 
-					for( i=dataIndex; i>0; i--)
+					for(int i=dataIndex; i>0; i--)
 					{
-			  			pHead = pList;
+			  			//pHead = pList;
 						
+						memset(bufToDb, 0, STR_LEN);
+						strncpy(bufToDb, list_get(pList, i), STR_LEN);
+
 						//The data in the linked list is sent to the server
-						if( write(cli_infor_t.fd, pHead->element, strlen(serialNum)) < 0 )
+						//if( write(cli_infor_t.fd, pHead->element, strlen(serialNum)) < 0 )
+						if( write(cli_infor_t.fd, bufToDb, strlen(serialNum)) < 0 )
 						{
 							printf("Write %d bytes data back to client[%d] failure: %s\n", rv, cli_infor_t.fd, strerror(errno));
 							close(cli_infor_t.fd);
@@ -289,7 +292,8 @@ int main(int argc, char *argv[])
 
 							break;
 						}
-						list_drop_head(&pList);
+						//list_drop_head(&pList);
+						list_drop_tail(&pList);
 						
 						if(link_flag)
 						{
@@ -341,6 +345,8 @@ void print_usage(char *proname)
 	printf("-i(--ipaddr): ip address of server\n");
 	printf("-p(--port): port of server\n");
 	printf("-t(--time): sampling interval\n");
+	printf("-a(--dbName): The name of the client temporary database\n");
+	printf("-b(--tbName): The name of the table in the client's temporary database\n");
 	printf("-h(--help): some help\n");
 }
 

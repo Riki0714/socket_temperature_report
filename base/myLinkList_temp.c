@@ -183,8 +183,8 @@ char * list_get(Node *pHead, int pos)
 		i++;
 		if( i==pos )
 		{
-			return pHead->element;
-			//break;
+			//return pHead->element;
+			break;
 		}
 		pHead = pHead->next;
 	}
@@ -454,6 +454,10 @@ int main()
 	strncpy(buf1, buf, sizeof(buf1));
 	list_insert_head(&pList, buf1); //22
 
+	for(int i=2; i>0; i--)
+	{
+		printf("%s\n", list_get(pList, i));
+	}
 
 	//buf_get = *list_get(pList, 2);
 	//printf("%s\n", buf_get);
@@ -464,5 +468,4 @@ int main()
 	list_print(pList);
 }
 */
-
 
