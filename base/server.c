@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
 	int						connfd = -1;   //fd -- Connect to a new client
 	int						rv = -20, i=0; 
 	char					buf_rece[BUF_LEN] = {0}; 
-	char					but_to_db[BUF_LEN] = {0}; 
+	char					buf_to_db[BUF_LEN] = {0}; 
 	char					buf_trans[BUF_LEN]="hello, your data has been received!\n"; 
 	int						daemon_flag = 0;   //1:Server background  0:Front-end print data
 	int						sql_tb_flag = 0;   //1:Server background  0:Front-end print data
@@ -122,12 +122,11 @@ int main(int argc, char *argv[])
 	}
 
 	//---------------- create dataBase
-	rv = -1;
-	rv = sqlite3_open(db_name, &db);
+	db_open(*db, db_name, tb_name);
 	if( rv )
 	{
 		printf("open database %s failure: %s\n", db_name, sqlite3_errmsg(db));
-		sqlite3_close(db);
+		db_close(db);
 		return -24;
 	}
 //	if( sql_op(db, tb_name, FIND, NULL) ) //If 1 is returned, the table does not exist
@@ -242,8 +241,8 @@ int main(int argc, char *argv[])
 					char *errmsg=NULL;
 
 					//Put the data into the database
-					snprintf(but_to_db, sizeof(but_to_db),"%d, '%s'", data_index, buf_rece);
-					sql_op(db, tb_name, INSERT, but_to_db);
+					snprintf(buf_to_db, sizeof(buf_to_db),"%d, '%s'", data_index, buf_rece);
+					db_insert(db, tb_name, buf_to_db);
 					printf("Successfully put the data into the database [%s - %s]\n", db_name, tb_name);
 				}
 
@@ -256,12 +255,14 @@ int main(int argc, char *argv[])
 	}
 
 	close(serv_infor_t.fd);
-	sqlite3_close(db);
+	db_close(db);
 
 Exit1:
 	if(rv<0)
+	{
 		close(serv_infor_t.fd);
-		sqlite3_close(db);
+		db_close(db);
+	}
 
 	return rv;
 }

@@ -24,6 +24,12 @@
 #define UPDATE	6
 #define FIND	7
 
+
+int db_open(sqlite3 *db, char *dbname);
+int db_close(sqlite3 *db);
+int tb_create(sqlite3 *db, char *tbName, char *data);
+int db_remove(sqlite3 *db, char *tbName, char *data);
+int db_insert(sqlite3 *db, char *tbName, char *data);
 int sql_op(sqlite3 *db, char *tbName, int op, char *data);
 
 #endif

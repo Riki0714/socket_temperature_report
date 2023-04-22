@@ -45,7 +45,6 @@
 
 void print_usage(char *proname); //man -- Command line argument parsing
 void sig_pipe(int sig); 
-
 int time_out(int *last_time, int *now_time, int sample_intv);
 
 int	g_link_flag = 0;  //1:have connected to the server   0:unconnected
@@ -131,17 +130,12 @@ int main(int argc, char *argv[])
 
 
 	//--------------------- open database --------------------------
-	rv = -1;
-	rv = sqlite3_open(dbname, &db);
+	rv = db_open(db, dbname, tbname);
 	if(rv)
 	{
 		printf("open database %s failure: %s\n", dbname, sqlite3_errmsg(db));
-		sqlite3_close(db);
+		db_close(db);
 		return -12;
-	}
-	if( sql_op(db, tbname, FIND, NULL) ) //1:The file does not exist   0:already exists
-	{
-		sql_op(db, tbname, CREATE, "id int, content char");
 	}
 	dbg_print("Open database successfully! %d\n", rv);
 
@@ -212,23 +206,17 @@ int main(int argc, char *argv[])
 
 		if( !g_link_flag ) //Failed to connect to the server
 		{
-			//------------ Insert a linked list from the header --------------
-			list_insert_head(&plist, NULL, cont_str);
-
 			//------------ Put into database ---------------
 			memset(buf_to_db, 0, sizeof(buf_to_db));
 			snprintf(buf_to_db, sizeof(buf_to_db), "%d, '%s'", index, cont_str);
-			sql_op(db, tbname, INSERT, buf_to_db);
+			db_insert(db, tbname, buf_to_db);
 			printf("Successfully put data into the database [%s - %s]\n", dbname, tbname);
 
-
 			dbg_print("1: %d\n", index);
-
 
 			//------------ reconnection --------------------
 			if( !g_link_flag )
 			{
-				rv = -1;
 				if( (rv = client_init(&cli_infor_t) < 0) )
 				{
 					printf("Failed to connect to the server\n");
@@ -253,23 +241,18 @@ int main(int argc, char *argv[])
 							break;
 						}
 
-						memset(buf_to_db, 0, STR_LEN);
-						strncpy(buf_to_db, list_get(plist, index), STR_LEN);
-
 						if( socket_write(cli_infor_t.fd, buf_to_db, strlen(cont_str)) < 0 )
 						{
 							g_link_flag = 0;
 							break;
 						}
-
-						list_drop_tail(&plist);
 						
 						if(g_link_flag)
 						{
 							//Delete the data from the database
 							memset(buf_to_db, 0, sizeof(buf_to_db));
 							snprintf(buf_to_db, sizeof(buf_to_db), "id=%d", index);
-							sql_op(db, tbname, DELETE, buf_to_db);
+							db_remove(db, tbname, buf_to_db);
 						}
 
 						if(index>0)  index--;
@@ -284,7 +267,7 @@ int main(int argc, char *argv[])
 	}
 
 //EXIT1:
-	sqlite3_close(db);
+	db_close(db);
 
 	return 0;
 }

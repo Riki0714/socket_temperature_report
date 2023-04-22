@@ -20,10 +20,66 @@
 
 #define LEN 256
 
-
-int db_open(char *filename)
+int db_open(sqlite3 *db, char *dbname, char *tbName)
 {
+	rv = sqlite3_open(dbname, &db);
+	if(rv)
+	{   
+		printf("open database %s failure: %s\n", dbname, sqlite3_errmsg(*db));
+		sqlite3_close(*db);
+		return -12;
+	}   
 
+	tb_create(db, tbName, "id int, content char");
+	return 0;
+}
+
+int db_close(sqlite3 *db)
+{
+	if( sqlite3_close(*db) !=0 )
+	{
+		printf("close database failure!\n");
+		return -1;
+	}
+	return 0;
+}
+
+int tb_create(sqlite3 *db, char *tbName, char *data)
+{
+	char    str_tmp[LEN]={0};
+	int     i=0;
+	char	 *errmsg=NULL;
+
+	snprintf(str_tmp, LEN-1, "CREATE TABLE %s", tbName);
+	strncat(str_tmp, "(", sizeof(str_tmp)-strlen(str_tmp)   );  
+
+	snprintf(str, LEN-1, "%s%s);", str_tmp, data);
+	sqlite3_exec(db, str, NULL, NULL, &errmsg);
+
+	return 0;
+}
+
+int db_remove(sqlite3 *db, char *tbName, char *data)
+{
+	char	str[LEN]={0};
+	char	 *errmsg=NULL;
+
+	snprintf(str, LEN-1, "DELETE FROM %s where %s", tbName, data);
+	strncat(str, ";", sizeof(str)-strlen(str) );
+	sqlite3_exec(db, str, NULL, NULL, &errmsg);
+
+	return 0;
+}
+
+int db_insert(sqlite3 *db, char *tbName, char *data)
+{	
+	char	str[LEN]={0};
+	char	 *errmsg=NULL;
+
+	snprintf(str, LEN-1, "INSERT INTO %s VALUES(%s);", tbName, data);
+	sqlite3_exec(db, str, NULL, NULL, &errmsg);
+
+	return 0;
 }
 
 

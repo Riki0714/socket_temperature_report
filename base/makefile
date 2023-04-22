@@ -8,7 +8,7 @@ all:
 #	gcc -shared -fPIC -o libcli.so myDns.c
 
 client:
-	@gcc -shared -fPIC -o libcli.so client.c get_time.c get_temp.c socket.c timer.c sql.c linklist_temp.c
+	@gcc -shared -fPIC -o libcli.so client.c get_time.c get_temp.c socket.c timer.c sql.c 
 	@gcc ./client.c -o cli.out -I ./ -I ../sqlite3/install/include -lcli -L ./ -lsqlite3 -L ../sqlite3/install/lib/
 #	@gcc ./client.c -o cli.out -I ./ -lcli -L ./
 	export LD_LIBRARY_PATH=/home/iot23/xiao/one_Temp/base
