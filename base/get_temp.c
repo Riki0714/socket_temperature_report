@@ -121,12 +121,13 @@ int ds18b20_get_temperature(char *all_path, float *temperature, int size)
 
 int sample_temperature(char *buf, int size)
 {
-	char 	devsn[LEN_2] = {0};
-	char	all_path[LEN_3] = W1_PATH;
-	char	time[LEN_3] = {0};
-	float	temperature = 0;
-	char	str[LEN_4] = {0};
-	int		timeLen = 0;
+	char 		devsn[LEN_2] = {0};
+	char		all_path[LEN_3] = W1_PATH;
+	char		time[LEN_3] = {0};
+	float		temperature = 0;
+	char		str[LEN_4] = {0};
+	int			timeLen = 0;
+	packet_t	pack;
 
 	if( get_devsn(devsn, 64)<0 )  
 	{
@@ -136,20 +137,24 @@ int sample_temperature(char *buf, int size)
 	strncat(all_path, devsn, (sizeof(all_path)-1-strlen(all_path)) );
 	strncat(all_path, PATH_OTHER, (sizeof(all_path)-1-strlen(all_path)) );
 
-	ds18b20_get_temperature(all_path, &temperature, 64);
+	if(ds18b20_get_temperature(all_path, &temperature, 64)<0)
+	{
+		printf("get temperature failure\n");
+		return -4;
+	}
 
-	get_time(time, LEN_1);
+	if( get_time(time, LEN_1) < 0 )
+	{
+		printf("get time failure!\n");
+		return -5;
+	}
 
-	memset(buf, 0, size);
-	snprintf(str, size-1, "--%s--%s--%.2f", devsn, time, temperature);
-	dbg_print("%s\n", str);
-
-	strncpy(buf, str, size-1);
+	pack_data(devsn, time, temperature, buf, size);
 
 	return 1;
 }
 
-int pack_data(packet_t *pack, char *buf, int size)
+int pack_data(char *devsn, char *time, float temper, char *buf, int size)
 {
 	char	str[LEN_4] = {0};
 
