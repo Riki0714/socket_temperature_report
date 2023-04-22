@@ -129,11 +129,6 @@ int main(int argc, char *argv[])
 		db_close(db);
 		return -24;
 	}
-//	if( sql_op(db, tb_name, FIND, NULL) ) //If 1 is returned, the table does not exist
-//	{
-//		sql_op(db, tb_name, CREATE, "id int, content char"); //create a new table
-//	}
-//	sqlite3_exec(db, "INSERT INTO TEMP VALUES(0, '------ new data ------')", NULL, NULL, &errmsg);
 
 	dbg_print("Open database successfully! %d\n", rv);
 
@@ -162,7 +157,7 @@ int main(int argc, char *argv[])
 	//---------------- daemon ----------------
 	if(daemon_flag) 
 	{
-		if( daemon(0,0) < 0 )
+		if( daemon(1,1) < 0 )
 		{
 			printf("daemon failure: %s\n", strerror(errno));
 			return -26;
