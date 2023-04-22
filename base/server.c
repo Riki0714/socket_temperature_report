@@ -50,7 +50,6 @@ int main(int argc, char *argv[])
 	char					buf_trans[BUF_LEN]="hello, your data has been received!\n"; 
 	int						daemon_flag = 0;   //1:Server background  0:Front-end print data
 	int						sql_tb_flag = 0;   //1:Server background  0:Front-end print data
-	int						backlog = BACKLOG; //listen backlog
 	char					dfIp[32] = "0.0.0.0"; 
 	int						data_index = 0;
 	
@@ -71,8 +70,6 @@ int main(int argc, char *argv[])
 		{"--ipaddr",  		optional_argument, 	NULL, 'i'},
 		{"--daemon",  		optional_argument, 	NULL, 'd'},
 		{"--backlog",	 	optional_argument, 	NULL, 'b'},
-		{"--databaseName",  optional_argument, 	NULL, 'a'},
-		{"--tableName", 	optional_argument, 	NULL, 't'},
 		{"--help",    		no_argument, 	    NULL, 'h'},
 		{0, 0, 0, 0}    ///!!!
 	}; ///!!!
@@ -81,8 +78,9 @@ int main(int argc, char *argv[])
 	serv_infor_t.fd = -1;
 	serv_infor_t.ip = dfIp;
 	serv_infor_t.port = 6666;
+	serv_infor_t.backlog = BACKLOG;
 
-	while( (ch=getopt_long(argc, argv, "p:i::d::b::a::t::h", opts, NULL)) != -1 )
+	while( (ch=getopt_long(argc, argv, "p:i::d::b::h", opts, NULL)) != -1 )
 	{
 		switch( ch )
 		{
@@ -95,15 +93,7 @@ int main(int argc, char *argv[])
 				break;
 
 			case 'b':
-				backlog = atoi(optarg);
-				break;
-
-			case 'a':
-				db_name = optarg;
-				break;
-
-			case 't':
-				tb_name = optarg;
+				serv_infor_t.backlog = atoi(optarg);
 				break;
 
 			case 'h':
@@ -125,7 +115,7 @@ int main(int argc, char *argv[])
 
 	//---------------- socket server  -----------------
 	//Initialize the server
-	if( server_init(&serv_infor_t, BACKLOG) < 0)
+	if( server_connect(&serv_infor_t) < 0)
 	{
 		printf("server initialization error!\n");
 		return -23;
@@ -233,20 +223,12 @@ int main(int argc, char *argv[])
 			{
 				rv = -1;
 				rv = socket_read(event_array[i].data.fd, buf_rece, sizeof(buf_rece));
-				/*  
-				memset(buf_rece, 0, sizeof(buf_rece));
-				if( (rv=read(event_array[i].data.fd, buf_rece, sizeof(buf_rece))) < 0)
+				if( rv<0 || rv==0 )
 				{
-					printf("Read data from client socket[%d] failure: %s\n", event_array[i].data.fd, strerror(errno));
 					close(event_array[i].data.fd);
 					continue;
 				}
-				else if( rv == 0 )
-				{
-					printf("client socket[%d] disconnected\n", event_array[i].data.fd);
-					close(event_array[i].data.fd);
-					continue;
-				}*/
+
 				if( rv>0 )
 				{
 					if( !sql_tb_flag )
@@ -258,28 +240,19 @@ int main(int argc, char *argv[])
 						}
 					}
 					char *errmsg=NULL;
-					//printf("read %d bytes data from client[%d] and echo it back: '%s'\n", rv, event_array[i].data.fd, buf_rece);
 
 					//Put the data into the database
-					if(data_index<10000) data_index++;
-					else	data_index=1;
-
 					snprintf(but_to_db, sizeof(but_to_db),"%d, '%s'", data_index, buf_rece);
 					sql_op(db, tb_name, INSERT, but_to_db);
 					printf("Successfully put the data into the database [%s - %s]\n", db_name, tb_name);
 				}
 
-			/*	if( write(event_array[i].data.fd, buf_trans, rv) < 0 )
+				if( socket_write(event_array[i].data.fd, buf_trans, sizeof(buf_trans)) < 0)
 				{
-					printf("Write %d bytes data back to client[%d] failure: %s\n", rv, event_array[i].data.fd, strerror(errno));
 					close(event_array[i].data.fd);
-				}*/
-				socket_write(event_array[i].data.fd, buf_trans, sizeof(buf_trans));
+				}
 			}
 		}
-		
-		//sleep(1);
-		//close(clifd);
 	}
 
 	close(serv_infor_t.fd);
@@ -303,7 +276,6 @@ void usage_print(char *proName)
 	printf("-i(--ipaddr): ip address of client\n");
 	printf("-b(--backlog): listen backlog\n");
 	printf("-d(--daemon): If the value is '1', the server starts background work\n");
-	printf("-a(--databaseName): The name of the database that holds the data received from the client\n");
 	printf("-t(--backlog): The name of the table that holds the data received from the client\n");
 	printf("-h(--help): some help\n");
 }

@@ -44,6 +44,34 @@ typedef struct socket_information{
 
 #define SO_NOSIGPIPE   0x1022
 
+int server_init(sock_infor *infor_t, struct sockaddr_in *addr)
+{
+	int						value = 1;
+	int						keepAlive = 1;
+	int						keepIdle = 60;
+	int						keepInterval = 5;
+	int						keepCount = 3;
+
+	if( ( infor_t->fd = socket(AF_INET, SOCK_STREAM, 0)) < 0 )
+	{
+		printf("get socket failure :%s\n", strerror(errno));
+		return -51;
+	}
+	//printf("socket successfully!\n");
+
+	setsockopt( serv_infor_t->fd, SOL_SOCKET, SO_NOSIGPIPE, &value, sizeof(value));
+	setsockopt( serv_infor_t->fd, SOL_SOCKET, SO_KEEPALIVE, &value, sizeof(value));
+	setsockopt( serv_infor_t->fd, SOL_TCP, 	TCP_KEEPINTVL, (void *)&keepIdle, sizeof(keepIdle));
+	setsockopt( serv_infor_t->fd, SOL_TCP, 	TCP_KEEPINTVL, (void *)&keepInterval, sizeof(keepInterval));
+	setsockopt( serv_infor_t->fd, SOL_TCP, 	TCP_KEEPINTVL, (void *)&keepCount, sizeof(keepCount));
+
+	memset(addr, 0, sizeof(struct sockaddr_in));
+	addr.sin_family = AF_INET;
+	addr.sin_port = htons( infor_t->port);
+	inet_aton( infor_t->ip, &((*addr).sin_addr));
+ 
+	return 0;
+}
 
 
 
@@ -87,25 +115,43 @@ int socket_connect(int fd, const struct sockaddr *addr, int len)
 }
 
 
-int socket_write(int fd, char *buf, int len)
+int socket_write(int fd, char *buf, int bytes)
 {
-	if(  write(fd, buf, len) < 0  )
+	char	*str_tmp=buf;
+	int		trans_bytes=0;
+	int		tobesend_bytes=bytes;
+	
+	while( real_bytes>0 )
 	{
-		printf("write %d bytes data back to client[%d] failure: %s\n", len, fd, strerror(errno));
-		close(fd);
-		return -1;
+		trans_bytes = write(fd, str_tmp, tobesend_bytes);
+		
+		if( trans_bytes<0 )
+		{
+			if( errno==EINTR )  
+			{
+				continue;
+			}
+			else
+			{
+				printf("write %d bytes data back to client[%d] failure: %s\n", bytes, fd, strerror(errno));
+				close(fd);
+				return -1;
+			}
+		}
+
+		tobesend_bytes -= trans_bytes;
 	}
 
 	return 0;
 }
 
 
-int socket_read(int fd, char *buf, int len)
+int socket_read(int fd, char *buf, int bytes)
 {
 	int rv=0;
 
-	memset(buf, 0, len);
-	if( (rv=read(fd, buf, len)) < 0  )
+	memset(buf, 0, bytes);
+	if( (rv=read(fd, buf, bytes)) < 0  )
 	{
 		printf("read data from server[%d] failure: %s\n", fd, strerror(errno));
 		close(fd);
@@ -123,62 +169,35 @@ int socket_read(int fd, char *buf, int len)
 	return rv;
 }
 
-
-int server_init(sock_infor *serv_infor_t, int backlog)
+int server_connect(sock_infor *serv_infor_t)
 {
-	int 					rv = -1, on = 1;
+	int 					rv = -1;
 	int						value = 1;
-	int						keepAlive = 1;
-	int						keepIdle = 60;
-	int						keepInterval = 5;
-	int						keepCount = 3;
 
 	struct sockaddr_in	 	ser_addr;
 
-	if( ( serv_infor_t->fd = socket(AF_INET, SOCK_STREAM, 0)) < 0 )
+	if( socket_init( serv_infor_t, &ser_addr) < 0 )
 	{
-		printf("get socket failure :%s\n", strerror(errno));
-		return -51;
+		printf("server init failure!\n");
+		rv = -51;
+		goto Exit1;
 	}
-	printf("socket successfully!\n");
-
 	setsockopt( serv_infor_t->fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
-	setsockopt( serv_infor_t->fd, SOL_SOCKET, SO_NOSIGPIPE, &value, sizeof(value));
-	setsockopt( serv_infor_t->fd, SOL_SOCKET, SO_KEEPALIVE, &value, sizeof(value));
-	setsockopt( serv_infor_t->fd, SOL_TCP, 	TCP_KEEPINTVL, (void *)&keepIdle, sizeof(keepIdle));
-	setsockopt( serv_infor_t->fd, SOL_TCP, 	TCP_KEEPINTVL, (void *)&keepInterval, sizeof(keepInterval));
-	setsockopt( serv_infor_t->fd, SOL_TCP, 	TCP_KEEPINTVL, (void *)&keepCount, sizeof(keepCount));
 
-
-	memset(&ser_addr, 0, sizeof(ser_addr));
-	ser_addr.sin_family = AF_INET;
-	ser_addr.sin_port = htons( serv_infor_t->port);
-	inet_aton( (*serv_infor_t).ip, &ser_addr.sin_addr);
- 
-	if( bind( serv_infor_t->fd, (struct sockaddr *)&ser_addr, sizeof(ser_addr))< 0)
+	if( socket_bind( serv_infor_t->fd, (struct sockaddr *)&ser_addr, sizeof(ser_addr))< 0)
 	{
 		printf("bind failure!\n");
 		rv = -52;
 		goto Exit1;
 	}
 
-	if( listen( (*serv_infor_t).fd, backlog) < 0)
+	if( socket_listen( (*serv_infor_t).fd, serv_infor_t->backlog) < 0)
 	{
 		printf("listen failure!\n");
 		rv = -53;
 		goto Exit1;
 	}
 
-/*  
-	if( socket_bind( serv_infor_t->fd, (struct sockaddr *)&ser_addr, sizeof(ser_addr)) < 0)
-	{
-		return -52;
-	}
-	if( listen( (*serv_infor_t).fd, backlog )  <  0 )
-	{
-		return -53;
-	}
-*/
 	printf("The server has been successfully initialized!\n");
 	rv = 0;
 
@@ -191,43 +210,25 @@ Exit1:
 	return rv;
 }
 
-int client_init(sock_infor *cli_infor_t)
+int client_connect(sock_infor *cli_infor_t)
 {
 	int 					rv = 0;
-	int						value = 1;
-	int						keepAlive = 1;
-	int						keepIdle = 60;
-	int						keepInterval = 5;
-	int						keepCount = 3;
-
 	struct sockaddr_in	 	cli_addr;
 
-	if( ( cli_infor_t->fd = socket(AF_INET, SOCK_STREAM, 0)) < 0 )
+	if( socket_init( cli_infor_t, &cli_addr) < 0 )
 	{
-		printf("get socket failure :%s\n", strerror(errno));
-		return -51;
+		printf("client init failure!\n");
+		rv = -55;
+		goto Exit1;
 	}
-	printf("socket successfully!\n");
-
-	setsockopt( cli_infor_t->fd, SOL_SOCKET, SO_NOSIGPIPE, &value, sizeof(value));
-	setsockopt( cli_infor_t->fd, SOL_SOCKET, SO_KEEPALIVE, &value, sizeof(value));
-	setsockopt( cli_infor_t->fd, SOL_TCP, 	TCP_KEEPINTVL, (void *)&keepIdle, sizeof(keepIdle));
-	setsockopt( cli_infor_t->fd, SOL_TCP, 	TCP_KEEPINTVL, (void *)&keepInterval, sizeof(keepInterval));
-	setsockopt( cli_infor_t->fd, SOL_TCP, 	TCP_KEEPINTVL, (void *)&keepCount, sizeof(keepCount));
-
-	memset(&cli_addr, 0, sizeof(cli_addr));
-	cli_addr.sin_family = AF_INET;
-	cli_addr.sin_port = htons( cli_infor_t->port);
-	inet_aton( cli_infor_t->ip, &cli_addr.sin_addr);
 
 	if( connect( cli_infor_t->fd, (struct sockaddr *)&cli_addr, sizeof(cli_addr))< 0)
 	{
 		printf("connect failure!\n");
-		rv = -52;
+		rv = -56;
 		goto Exit1;
 	}
 
-//	printf("%d\n", cli_infor_t->fd);
 	printf("The client has been successfully initialized!\n");
 
 Exit1:
@@ -249,6 +250,7 @@ void set_socket_rlimit(void)
 
 	printf("set socket open fd max count to %d\n", limit.rlim_max);
 }
+
 char *socket_dns(char *doname, int size)
 {
 	struct addrinfo     hints; 
