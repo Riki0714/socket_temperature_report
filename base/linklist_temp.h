@@ -35,8 +35,8 @@ typedef struct	Node{
 
 
 void 	list_init(Node **pNode);  	   //1. Initializes the linked list
-int		list_insert_head(Node **pNode, Temp_str *tempStr, char * element);  //2. Insert a new node from the header
-int 	list_insert_tail(Node **pNode, Temp_str *tempStr, char * element);  //3. Insert a new node from the tail
+int		list_insert_head(Node **pNode, packet_t *tempStr, char * element);  //2. Insert a new node from the header
+int 	list_insert_tail(Node **pNode, packet_t *tempStr, char * element);  //3. Insert a new node from the tail
 int 	list_drop_head(Node **pNode); //8. Delete the first node
 int 	list_drop_tail(Node **pNode); //9. Delete the last node
 int 	list_drop_pos(Node *pHead, int pos); //10. Deletes the node with the specified sequence number
@@ -45,8 +45,8 @@ int 	list_isEmpty(Node *pHead); 	  //12. Determines whether the linked list is e
 int 	list_print(Node *pHead); 	  //13. print the list
 int 	list_size(Node *pHead); 	  //14. Calculate the length of the list
 
-int 		list_find(Node *pHead, Temp_str *tempStr, char * x); 	  //4. Finds the node based on the content and returns its content's address
-Node * 		list_find_Node(Node *pHead, Temp_str *tempStr, char * x);  //5. Finds the node based on the content and returns its address
+int 		list_find(Node *pHead, packet_t *tempStr, char * x); 	  //4. Finds the node based on the content and returns its content's address
+Node * 		list_find_Node(Node *pHead, packet_t *tempStr, char * x);  //5. Finds the node based on the content and returns its address
 char * 		list_get(Node *pHead, int pos);  		  //6. Finds a node based on its location and returns its content's address
 Node * 		list_get_Node(Node *pHead, int pos);  	  //7. Finds a node based on its location and returns its address
 

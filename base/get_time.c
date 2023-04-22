@@ -11,32 +11,26 @@
  *                 
  ********************************************************************************/
 
-#include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include "get_time.h"
 
-int get_time_func(char *buf1, int len1, char *buf2, int len2)
+int get_time(char *time_str, int size)
 {
-	time_t t;
-    struct tm *tmp,*tmp2;
-    //char buf1[64], buf2[64];
+	time_t time_stamp;
+    struct tm  *tm;
 
-    time(&t);
+    time_stamp = time((time_t *)NULL);
+	tm = localtime(&time_stamp); 
 					      
-	tmp = localtime(&t);
-	strftime(buf1, 64, "time and date: %F %T", tmp);
-	//printf("%s\n", buf1);
-
-	tmp2 = gmtime(&t);
-	strftime(buf2, 64, "time and date: %F %T", tmp2);
-	//printf("%s\n", buf2);
+	strftime(time_str, size, "%Y-%m-%d", tm);
 
 	return 1;
 }
 
-int get_time_pipe(char *buf, int len)
+int get_time_pipe(char *buf, int size)
 {
 	FILE 		*fp = NULL;
 
@@ -47,7 +41,7 @@ int get_time_pipe(char *buf, int len)
 	}
 
 	//fgets(buf, sizeof(buf), fp);
-	fgets(buf, len, fp);
+	fgets(buf, size, fp);
 	//printf("%s", buf);
 
 	return 1;

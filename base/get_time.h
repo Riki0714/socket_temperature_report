@@ -14,8 +14,8 @@
 #ifndef _GETTIME_H
 #define _GETTIME_H
 
-int get_time_func(char *buf1, int len1, char *buf2, int len2);
-int get_time_pipe(char *buf, int len);
+int get_time(char *time, int size);
+int get_time_pipe(char *buf, int size);
 
 #endif
 

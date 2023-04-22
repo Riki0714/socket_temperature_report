@@ -23,6 +23,9 @@
 #include <netinet/tcp.h>
 #include <stdlib.h>
 #include <sys/signal.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <arpa/inet.h>
 
 #include "debug.h"
 #include "socket.h"
@@ -40,6 +43,9 @@ typedef struct socket_information{
 */
 
 #define SO_NOSIGPIPE   0x1022
+
+
+
 
 int socket_bind(int fd, const struct sockaddr *addr, int len)
 {
@@ -243,6 +249,35 @@ void set_socket_rlimit(void)
 
 	printf("set socket open fd max count to %d\n", limit.rlim_max);
 }
+char *socket_dns(char *doname, int size)
+{
+	struct addrinfo     hints; 
+	struct addrinfo		*listp;
+	struct addrinfo		*p; 
+	char 				*ip;
+	int                 rv=-1;
+	int                 falgs = NI_NUMERICHOST;
+
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = 0;
+	hints.ai_protocol = 0;
+	hints.ai_flags = 0;
+
+	if( ( rv=(getaddrinfo(doname, NULL, &hints, &listp)) ) != 0 ) 
+	{   
+		printf("getaddrinfo error: %s", gai_strerror(rv));
+	}   
+
+	p = listp;
+	{   
+		getnameinfo(p->ai_addr, p->ai_addrlen, ip, size, NULL, 0, falgs);
+
+	}   
+	freeaddrinfo(listp);
+	return  ip;
+}
+
 
 /*
 int main(int argc, char *argv[])

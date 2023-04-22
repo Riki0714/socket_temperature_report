@@ -32,7 +32,7 @@ void list_init(Node **pNode)
 //-------------- Insert a new node from the header
 //------ pNode: the pointer of header pointer
 //		 insertElem: The data content of the new node
-int list_insert_head(Node **pNode, Temp_str *tempStr, char * insertElem)
+int list_insert_head(Node **pNode, packet_t *tempStr, char * insertElem)
 {
 	Node *pIn;
 
@@ -53,7 +53,7 @@ int list_insert_head(Node **pNode, Temp_str *tempStr, char * insertElem)
 //-------------- Insert a new node from the tail
 //------ pNode: the pointer of header pointer
 //		 insertElem: The data content of the new node
-int list_insert_tail(Node **pHead, Temp_str *tempStr, char * insertElem)
+int list_insert_tail(Node **pHead, packet_t *tempStr, char * insertElem)
 {
 	Node *pIn=NULL;
 	Node *pTmp=*pHead;
@@ -93,7 +93,7 @@ int list_insert_tail(Node **pHead, Temp_str *tempStr, char * insertElem)
 //-------------- Find the node where the target value is located and return its content
 //------ pHead: the hearder pointer
 //		 x: What to look for
-int list_find(Node *pHead, Temp_str *tempStr, char * x)
+int list_find(Node *pHead, packet_t *tempStr, char * x)
 {
 	int 	pos=0;
 
@@ -128,7 +128,7 @@ int list_find(Node *pHead, Temp_str *tempStr, char * x)
 //-------------- Find the node where the target value is located and return its address
 //------ pHead: the hearder pointer
 //		 x: What to look for
-Node * list_findi_Node(Node *pHead, Temp_str *tempStr, char * x)
+Node * list_findi_Node(Node *pHead, packet_t *tempStr, char * x)
 {
 	if( NULL == pHead )
 	{

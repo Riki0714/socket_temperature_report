@@ -20,6 +20,13 @@
 
 #define LEN 256
 
+
+int db_open(char *filename)
+{
+
+}
+
+
 int sql_op(sqlite3 *db, char *tbName, int op, char *data)
 {
 	char  str[LEN]={0};

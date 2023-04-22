@@ -41,8 +41,9 @@
 #define OPEN_DIR_ERROR 	 -2
 #define FOUND_ERROR      -3
 
+//char sn_name[64];
 
-int get_devsn(char *serial_number, int size)
+int get_name(char *serialNum, int len)
 {
 	char			w1_path[64] = W1_PATH;
 	char			path_other[64] = PATH_OTHER;
@@ -62,8 +63,8 @@ int get_devsn(char *serial_number, int size)
 		//if( strstr(dirRead->d_name, "28-") )
 		if( strstr(dirRead->d_name, KEY_FILE_NAME) )
 		{
-			memset(serial_number, 0, size);
-			strncpy(serial_number, dirRead->d_name, size-1);
+			memset(serialNum, 0, len);
+			strncpy(serialNum, dirRead->d_name, len-1);
 			found = 1;
 		}
 	}
@@ -80,13 +81,13 @@ int get_devsn(char *serial_number, int size)
 	return 1;
 }
 
-int ds18b20_get_temperature(char *all_path, float *temperature, int size)
+int get_file_content(char *allPath, char *content, int conLen)
 {
 	int		 fd = -1;
 	char     buf[128];
 	char	*ptr = NULL;
 
-	if( (fd=open(all_path, O_RDONLY)) < 0 )
+	if( (fd=open(allPath, O_RDONLY)) < 0 )
 	{
 		printf("open file failure: %s\n", strerror(errno));
 		return -4;
@@ -109,58 +110,61 @@ int ds18b20_get_temperature(char *all_path, float *temperature, int size)
 	}
 
 	ptr += 2;  //skip "t="
+	memset(content, 0, conLen);
 	dbg_print("%s\n", ptr);
 
-	*temperature = atof(ptr)/1000;
-	dbg_print("%lf\n", temperature);
+	//content = ptr;
+	strncpy(content, ptr, conLen-1);
+	dbg_print("%s\n", content);
 
-	dbg_print("get temperature successfully!%d\n", fd);
+	dbg_print("get content successfully!%d\n", fd);
 
 	return 1;
 }
 
-int sample_temperature(char *buf, int size)
+
+int get_temp_str(char *buf, int len)
 {
-	char 	devsn[LEN_2] = {0};
-	char	all_path[LEN_3] = W1_PATH;
+	char 	name[LEN_2] = {0};
+	char	allPath[LEN_3] = W1_PATH;
+	char	content[LEN_2] = {0};
 	char	time[LEN_3] = {0};
-	float	temperature = 0;
+	double	tempF = 0;
 	char	str[LEN_4] = {0};
 	int		timeLen = 0;
 
-	if( get_devsn(devsn, 64)<0 )  
+	//memset(name, 0, sizeof(name));
+	if( get_name(name, 64)<0 )  
 	{
-		printf("get device serial number error!\n");
+		printf("get name error!\n");
 		return -3;
 	}
-	strncat(all_path, devsn, (sizeof(all_path)-1-strlen(all_path)) );
-	strncat(all_path, PATH_OTHER, (sizeof(all_path)-1-strlen(all_path)) );
 
-	ds18b20_get_temperature(all_path, &temperature, 64);
+	//strcat(allPath, name);
+	strncat(allPath, name, (sizeof(allPath)-1-strlen(allPath)) );
+	strncat(allPath, PATH_OTHER, (sizeof(allPath)-1-strlen(allPath)) );
+	dbg_print("%s\n", allPath);
 
-	get_time(time, LEN_1);
+	get_file_content(allPath, content, 64);
+	dbg_print("%s\n", content);
+	tempF = atof(content) / 1000;
 
-	memset(buf, 0, size);
-	snprintf(str, size-1, "--%s--%s--%.2f", devsn, time, temperature);
+	get_time_pipe(time, 128);
+	timeLen = strlen(time);
+	time[timeLen-1] = '\0';
+	dbg_print("%s\n", time);
+
+	memset(buf, 0, len);
+	//snprintf(str, len-1, "--Serial number: %s\n--Sampling time: %s--Temperature value: %.2f\n", name, time, tempF);
+	snprintf(str, len-1, "--%s--%s--%.2f", name, time, tempF);
 	dbg_print("%s\n", str);
 
-	strncpy(buf, str, size-1);
+	strncpy(buf, str, len-1);
 
 	return 1;
 }
 
-int pack_data(packet_t *pack, char *buf, int size)
-{
-	char	str[LEN_4] = {0};
-
-	memset(buf, 0, size);
-	snprintf(str, size-1, "--%s--%s--%.2f", pack->devsn, pack->time, pack->temper);
-	strncpy(buf, str, size-1);
-
-	return 0;
-}
-
-/*   
+/*  
 int main()
 {
 	char 	name[LEN_2] = {0};
