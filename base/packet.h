@@ -2,7 +2,7 @@
  *      Copyright:  (C) 2023 iot<iot@email.com>
  *                  All rights reserved.
  *
- *       Filename:  get_temp.h
+ *       Filename:  packet.h
  *    Description:  This file 
  *
  *        Version:  1.0.0(02/26/23)
@@ -11,10 +11,16 @@
  *                 
  ********************************************************************************/
 
-#ifndef _GET_TEMP_H
-#define _GET_TEMP_H
+#ifndef _PACKET_H
+#define _PACKET_H
 
 #define TEMP_STR_LEN  32
+
+typedef struct  packet_s{
+	char        devsn[TEMP_STR_LEN];
+	char        time[TEMP_STR_LEN];
+	float       temper;
+} packet_t;
 
 int pack_data(packet_t *pack, char *buf, int size);
 

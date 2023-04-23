@@ -70,20 +70,21 @@ int main(int argc, char *argv[])
 	char			*tbname = TABLENAME;
 
 	memset(&cli_infor_t, 0, sizeof(cli_infor_t));
-	cli_infor_t.ip = (char *)&rv;
+	cli_infor_t.ip = "127.0.0.1";
+	cli_infor_t.port = 7799;
 	cli_infor_t.fd = -1;
 
 	//-------------- Command line argument parsing  --------------
 	int				ch = -1; 
 	struct option	opts[] = {
-		{"ipaddr",		required_argument,  NULL, 'i'},
-		{"port",		required_argument,  NULL, 'p'},
+		{"ipaddr",		optional_argument,  NULL, 'i'},
+		{"port",		optional_argument,  NULL, 'p'},
 		{"sample_intv",	optional_argument,  NULL, 't'},
 		{"help",		no_argument,        NULL, 'h'},
 		{0, 0, 0, 0}
 	};
 
-	while( (ch=getopt_long(argc, argv, "i:p:t::h", opts, NULL)) != -1 )
+	while( (ch=getopt_long(argc, argv, "i::p::t::h", opts, NULL)) != -1 )
 	{
 		switch(ch)
 		{
@@ -170,7 +171,7 @@ int main(int argc, char *argv[])
 			printf("get temperature error!\n");
 			continue;
 		}
-		pack_data(pack, pack_str, STR_LEN);
+		pack_data(&pack, pack_str, STR_LEN);
 		dbg_print("%s\n", pack_str);
 	
 
