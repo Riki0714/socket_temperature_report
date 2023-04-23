@@ -23,14 +23,14 @@
 #include <sys/signal.h>
 #include <time.h>
 
-#include "get_temp.h"
+#include "ds18b20.h"
+#include "packet.h"
 #include "socket.h"
 #include "timer.h"
 #include "sql.h"
 #include "sqlite3.h"
-#include "linklist_temp.h"
 
-#define STR_LEN		256
+#define STR_LEN		128
 #define NAME_LEN	64
 #define INTERVAL	5
 
@@ -53,19 +53,16 @@ int	g_link_flag = 0;  //1:have connected to the server   0:unconnected
 int main(int argc, char *argv[])
 {
 	sock_infor		cli_infor_t; 	//Basic information about the client(ip address, port...)
+	packet_t		pack; //(devsn, time, temperature...)
 	int				sample_intv = INTERVAL; 	//sample interval
 	int				rv = -1;	    
 	int				index = 0;
 	int				last_time=0;
 	int				now_time=0;
 	int				timeout_flag=0;
-	char			cont_str[STR_LEN] = {0}; //The obtained temperature string
-	int				error_flag = 0;	//Gets the number of temperature errors
+	char			pack_str[STR_LEN] = {0}; //The obtained temperature string
 	char			buf_rece[STR_LEN] = {0}; 
 	char			buf_to_db[STR_LEN] = {0}; 
-
-	Node			*plist = NULL; //A header pointer to hold temporary database
-	Node			*phead = NULL;  
 
 	sqlite3			*db = NULL;
 	char			*errmsg = NULL;
@@ -142,7 +139,7 @@ int main(int argc, char *argv[])
 
 	//------------ connect to server -------------
 	printf("Now the client tries the server...\n");
-	if( (rv = client_init(&cli_infor_t) < 0) )
+	if( (rv = client_connect(&cli_infor_t) < 0) )
 	{
 		printf("Failed to connect to the server\n");
 		g_link_flag = 0;
@@ -159,31 +156,22 @@ int main(int argc, char *argv[])
 		if( !timeout_flag)
 		{	
 			now_time = time((time_t *)NULL);
-			if( (now_time-last_time) < sample_intv ) continue; 
-			else last_time = now_time;
+
+			if( (now_time-last_time) < sample_intv ) 
+				continue; 
+			else 
+				last_time = now_time;
 		}
 		else timeout_flag = 0;
 
 		//----------- Acquired temperature -------------
-		if ( !sample_temperature(cont_str, STR_LEN) )
+		if ( !sample_temperature(&pack) )
 		{
 			printf("get temperature error!\n");
-			error_flag++;
-
-			if(error_flag==5)
-			{
-				printf("Sorry, please check your hardware device and try again\n");
-				return -1; //If you can't get it, an error exit is reported
-			}
-			else
-			{
-				printf("Unable to obtain temperature, trying again...\n");
-				sleep(5);
-				continue;
-			}
+			continue;
 		}
-		error_flag = 0;
-		dbg_print("%s\n", cont_str);
+		pack_data(pack, pack_str, STR_LEN);
+		dbg_print("%s\n", pack_str);
 	
 
 		//------------ Send data to the server -------------
@@ -191,7 +179,7 @@ int main(int argc, char *argv[])
 		{
 			dbg_print("linked %d\n", g_link_flag);
 			
-			if( socket_write(cli_infor_t.fd, cont_str, strlen(cont_str)) < 0 )
+			if( socket_write(cli_infor_t.fd, pack_str, strlen(pack_str)) < 0 )
 			{
 				g_link_flag = 0;
 			}
@@ -208,7 +196,7 @@ int main(int argc, char *argv[])
 		{
 			//------------ Put into database ---------------
 			memset(buf_to_db, 0, sizeof(buf_to_db));
-			snprintf(buf_to_db, sizeof(buf_to_db), "%d, '%s'", index, cont_str);
+			snprintf(buf_to_db, sizeof(buf_to_db), "%d, '%s'", index, pack_str);
 			db_insert(db, tbname, buf_to_db);
 			printf("Successfully put data into the database [%s - %s]\n", dbname, tbname);
 
@@ -217,7 +205,7 @@ int main(int argc, char *argv[])
 			//------------ reconnection --------------------
 			if( !g_link_flag )
 			{
-				if( (rv = client_init(&cli_infor_t) < 0) )
+				if( (rv = client_connect(&cli_infor_t) < 0) )
 				{
 					printf("Failed to connect to the server\n");
 					g_link_flag = 0;
@@ -241,7 +229,7 @@ int main(int argc, char *argv[])
 							break;
 						}
 
-						if( socket_write(cli_infor_t.fd, buf_to_db, strlen(cont_str)) < 0 )
+						if( socket_write(cli_infor_t.fd, buf_to_db, strlen(pack_str)) < 0 )
 						{
 							g_link_flag = 0;
 							break;
@@ -263,7 +251,7 @@ int main(int argc, char *argv[])
 
 		}
 
-		dbg_print("hei22 %d\n", g_link_flag);
+		dbg_print("again %d\n", g_link_flag);
 	}
 
 //EXIT1:

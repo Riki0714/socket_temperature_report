@@ -22,11 +22,13 @@
 
 int db_open(sqlite3 *db, char *dbname, char *tbName)
 {
+	int rv=-1;
+
 	rv = sqlite3_open(dbname, &db);
 	if(rv)
 	{   
-		printf("open database %s failure: %s\n", dbname, sqlite3_errmsg(*db));
-		sqlite3_close(*db);
+		printf("open database %s failure: %s\n", dbname, sqlite3_errmsg(db));
+		sqlite3_close(db);
 		return -12;
 	}   
 
@@ -36,7 +38,7 @@ int db_open(sqlite3 *db, char *dbname, char *tbName)
 
 int db_close(sqlite3 *db)
 {
-	if( sqlite3_close(*db) !=0 )
+	if( sqlite3_close(db) !=0 )
 	{
 		printf("close database failure!\n");
 		return -1;
@@ -47,6 +49,7 @@ int db_close(sqlite3 *db)
 int tb_create(sqlite3 *db, char *tbName, char *data)
 {
 	char    str_tmp[LEN]={0};
+	char    str[LEN]={0};
 	int     i=0;
 	char	 *errmsg=NULL;
 

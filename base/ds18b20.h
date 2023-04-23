@@ -22,7 +22,7 @@ typedef struct		packet_s{
 	float		temper;
 } packet_t;
 
-int sample_temperature(char *buf, int size);
+int sample_temperature(packet_t *pack);
 int ds18b20_get_temperature(char *all_path, float *temperature, int size);
 int get_devsn(char *serial_number, int size);
 

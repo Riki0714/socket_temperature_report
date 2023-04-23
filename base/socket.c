@@ -44,7 +44,7 @@ typedef struct socket_information{
 
 #define SO_NOSIGPIPE   0x1022
 
-int server_init(sock_infor *infor_t, struct sockaddr_in *addr)
+int socket_init(sock_infor *infor_t, struct sockaddr_in *addr)
 {
 	int						value = 1;
 	int						keepAlive = 1;
@@ -59,15 +59,15 @@ int server_init(sock_infor *infor_t, struct sockaddr_in *addr)
 	}
 	//printf("socket successfully!\n");
 
-	setsockopt( serv_infor_t->fd, SOL_SOCKET, SO_NOSIGPIPE, &value, sizeof(value));
-	setsockopt( serv_infor_t->fd, SOL_SOCKET, SO_KEEPALIVE, &value, sizeof(value));
-	setsockopt( serv_infor_t->fd, SOL_TCP, 	TCP_KEEPINTVL, (void *)&keepIdle, sizeof(keepIdle));
-	setsockopt( serv_infor_t->fd, SOL_TCP, 	TCP_KEEPINTVL, (void *)&keepInterval, sizeof(keepInterval));
-	setsockopt( serv_infor_t->fd, SOL_TCP, 	TCP_KEEPINTVL, (void *)&keepCount, sizeof(keepCount));
+	setsockopt( infor_t->fd, SOL_SOCKET, SO_NOSIGPIPE, &value, sizeof(value));
+	setsockopt( infor_t->fd, SOL_SOCKET, SO_KEEPALIVE, &value, sizeof(value));
+	setsockopt( infor_t->fd, SOL_TCP, 	TCP_KEEPINTVL, (void *)&keepIdle, sizeof(keepIdle));
+	setsockopt( infor_t->fd, SOL_TCP, 	TCP_KEEPINTVL, (void *)&keepInterval, sizeof(keepInterval));
+	setsockopt( infor_t->fd, SOL_TCP, 	TCP_KEEPINTVL, (void *)&keepCount, sizeof(keepCount));
 
 	memset(addr, 0, sizeof(struct sockaddr_in));
-	addr.sin_family = AF_INET;
-	addr.sin_port = htons( infor_t->port);
+	addr->sin_family = AF_INET;
+	addr->sin_port = htons( infor_t->port);
 	inet_aton( infor_t->ip, &((*addr).sin_addr));
  
 	return 0;
@@ -75,7 +75,7 @@ int server_init(sock_infor *infor_t, struct sockaddr_in *addr)
 
 
 
-int socket_bind(int fd, const struct sockaddr *addr, int len)
+int socket_bind(int fd, struct sockaddr *addr, int len)
 {
 	if( bind(fd, addr, len) < 0 )
 	{
@@ -101,7 +101,7 @@ int socket_listen(int fd, int backlog)
 	return 0;
 }
 
-int socket_connect(int fd, const struct sockaddr *addr, int len)
+int socket_connect(int fd, struct sockaddr *addr, int len)
 {
 	if( connect(fd, addr, len) < 0)
 	{
@@ -115,17 +115,19 @@ int socket_connect(int fd, const struct sockaddr *addr, int len)
 }
 
 
-int socket_write(int fd, char *buf, int bytes)
+int socket_write(int fd, char *data, int bytes)
 {
-	char	*str_tmp=buf;
-	int		trans_bytes=0;
-	int		tobesend_bytes=bytes;
+	char	*str_tmp = data;
+	int		rv = -1;
+	int		len = 0;
+	int		tobesend_bytes = bytes;
 	
-	while( real_bytes>0 )
+	while( tobesend_bytes>0 )
 	{
-		trans_bytes = write(fd, str_tmp, tobesend_bytes);
-		
-		if( trans_bytes<0 )
+		len = tobesend_bytes>512 ? 512 : tobesend_bytes;
+
+		rv = write(fd, str_tmp, tobesend_bytes);
+		if( rv<0 )
 		{
 			if( errno==EINTR )  
 			{
@@ -139,7 +141,8 @@ int socket_write(int fd, char *buf, int bytes)
 			}
 		}
 
-		tobesend_bytes -= trans_bytes;
+		tobesend_bytes -= rv;
+		str_tmp += rv;
 	}
 
 	return 0;
@@ -172,6 +175,7 @@ int socket_read(int fd, char *buf, int bytes)
 int server_connect(sock_infor *serv_infor_t)
 {
 	int 					rv = -1;
+	int 					on = 1;
 	int						value = 1;
 
 	struct sockaddr_in	 	ser_addr;

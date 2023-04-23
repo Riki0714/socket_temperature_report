@@ -23,7 +23,6 @@
 #include <stdlib.h>
 
 #include "socket.h"
-#include "dns.h"
 #include "sql.h"
 
 //#define  CONFIG_DEBUG	
@@ -33,7 +32,7 @@
 #define BACKLOG		13
 #define MAX_EVENTS	512
 #define BUF_LEN		64
-#define BASENAME    "serData.db"
+#define BASENAME    "ser_data.db"
 #define TABLENAME	"TEMP"
 
 
@@ -122,7 +121,7 @@ int main(int argc, char *argv[])
 	}
 
 	//---------------- create dataBase
-	db_open(*db, db_name, tb_name);
+	db_open(db, db_name, tb_name);
 	if( rv )
 	{
 		printf("open database %s failure: %s\n", db_name, sqlite3_errmsg(db));
@@ -167,7 +166,7 @@ int main(int argc, char *argv[])
 
 	while(1)
 	{
-		printf("waiting...\n");
+		printf("server waiting...\n");
 
 		//3. epoll_wait() Event wait
 		//Return the number of elements in the event arra array
@@ -215,7 +214,6 @@ int main(int argc, char *argv[])
 			}
 			else
 			{
-				rv = -1;
 				rv = socket_read(event_array[i].data.fd, buf_rece, sizeof(buf_rece));
 				if( rv<0 || rv==0 )
 				{

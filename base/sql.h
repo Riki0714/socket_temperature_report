@@ -25,7 +25,7 @@
 #define FIND	7
 
 
-int db_open(sqlite3 *db, char *dbname);
+int db_open(sqlite3 *db, char *dbname, char *tbname);
 int db_close(sqlite3 *db);
 int tb_create(sqlite3 *db, char *tbName, char *data);
 int db_remove(sqlite3 *db, char *tbName, char *data);
