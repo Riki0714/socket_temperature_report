@@ -33,7 +33,7 @@ int pack_data(packet_t *pack, char *buf, int size)
 	char	str[64] = {0};
 
 	memset(buf, 0, size);
-	snprintf(str, size-1, "--%s--%s--%.2f", pack->devsn, pack->time, pack->temper);
+	snprintf(str, size-1, "%s|%s|%.2f", pack->devsn, pack->time, pack->temper);
 	strncpy(buf, str, size-1);
 
 	return 0;

@@ -23,6 +23,7 @@
 #include <stdlib.h>
 
 #include "socket.h"
+#include "packet.h"
 #include "sql.h"
 
 //#define  CONFIG_DEBUG	
@@ -42,13 +43,14 @@ void usage_print(char *proName);
 int main(int argc, char *argv[])
 {
 	sock_infor				serv_infor_t;  //server information(ip, port...)
+	packet_t				pack;
 	int						connfd = -1;   //fd -- Connect to a new client
 	int						rv = -20, i=0; 
 	char					buf_rece[BUF_LEN] = {0}; 
 	char					buf_to_db[BUF_LEN] = {0}; 
 	char					buf_trans[BUF_LEN]="hello, your data has been received!\n"; 
-	int						daemon_flag = 0;   //1:Server background  0:Front-end print data
-	int						sql_tb_flag = 0;   //1:Server background  0:Front-end print data
+	int						daemon_flag = 0;  //1:Server background  0:Front-end print data
+	int						sql_tb_flag = 0;  //1:table has been created  
 	char					dfIp[32] = "0.0.0.0"; 
 	int						data_index = 0;
 	
@@ -113,22 +115,19 @@ int main(int argc, char *argv[])
 	set_socket_rlimit();
 
 	//---------------- socket server  -----------------
-	//Initialize the server
 	if( server_connect(&serv_infor_t) < 0)
 	{
 		printf("server initialization error!\n");
 		return -23;
 	}
 
-	//---------------- create dataBase
-	db_open(db, db_name, tb_name);
-	if( rv )
+	//---------------- create dataBase  -----------------
+	db_open(&db, db_name, tb_name);
+	if( rv<0 )
 	{
-		printf("open database %s failure: %s\n", db_name, sqlite3_errmsg(db));
 		db_close(db);
 		return -24;
 	}
-
 	dbg_print("Open database successfully! %d\n", rv);
 
 
@@ -223,19 +222,10 @@ int main(int argc, char *argv[])
 
 				if( rv>0 )
 				{
-					if( !sql_tb_flag )
-					{
-						if( sql_op(db, tb_name, FIND, NULL) ) //If 1 is returned, the table does not exist
-						{
-							sql_op(db, tb_name, CREATE, "id int, content char"); //create a new table
-							sql_tb_flag = 1;
-						}
-					}
-					char *errmsg=NULL;
+					printf("receive %d bytes from client[%d] and echo it:'%s'\n", rv, event_array[i].data.fd, buf_rece);
 
 					//Put the data into the database
-					snprintf(buf_to_db, sizeof(buf_to_db),"%d, '%s'", data_index, buf_rece);
-					db_insert(db, tb_name, buf_to_db);
+					db_insert(db, tb_name, &pack);
 					printf("Successfully put the data into the database [%s - %s]\n", db_name, tb_name);
 				}
 

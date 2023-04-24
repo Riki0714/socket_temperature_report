@@ -34,14 +34,6 @@
 //#define SER_IP		"0.0.0.0"
 //#define BACKLOG		13
 
-/*
-typedef struct socket_information{
-	int		 fd;
-	char	*ip;
-	int		 port;
-} sock_infor;
-*/
-
 #define SO_NOSIGPIPE   0x1022
 
 int socket_init(sock_infor *infor_t, struct sockaddr_in *addr)
@@ -184,7 +176,7 @@ int server_connect(sock_infor *serv_infor_t)
 	{
 		printf("server init failure!\n");
 		rv = -51;
-		goto Exit1;
+	//	goto Exit1;
 	}
 	setsockopt( serv_infor_t->fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
 
@@ -192,25 +184,26 @@ int server_connect(sock_infor *serv_infor_t)
 	{
 		printf("bind failure!\n");
 		rv = -52;
-		goto Exit1;
+	//	goto Exit1;
 	}
 
 	if( socket_listen( (*serv_infor_t).fd, serv_infor_t->backlog) < 0)
 	{
 		printf("listen failure!\n");
 		rv = -53;
-		goto Exit1;
+	//	goto Exit1;
 	}
 
 	printf("The server has been successfully initialized!\n");
 	rv = 0;
 
+/*  
 Exit1:
 	if( rv<0 )
 		close( (*serv_infor_t).fd );
 	else
 		rv = 0;
-
+*/
 	return rv;
 }
 
@@ -223,24 +216,25 @@ int client_connect(sock_infor *cli_infor_t)
 	{
 		printf("client init failure!\n");
 		rv = -55;
-		goto Exit1;
+		//goto Exit1;
 	}
 
 	if( connect( cli_infor_t->fd, (struct sockaddr *)&cli_addr, sizeof(cli_addr))< 0)
 	{
 		printf("connect failure!\n");
 		rv = -56;
-		goto Exit1;
+		//goto Exit1;
 	}
 
 	printf("The client has been successfully initialized!\n");
 
+/*  
 Exit1:
 	if( rv<0 )
 		close( cli_infor_t->fd );
 	else
 		rv = 0;
-
+*/
 	return rv;
 }
 

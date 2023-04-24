@@ -128,10 +128,10 @@ int main(int argc, char *argv[])
 
 
 	//--------------------- open database --------------------------
-	rv = db_open(db, dbname, tbname);
-	if(rv)
+	rv = db_open(&db, dbname, tbname);
+	if( rv<0 )
 	{
-		printf("open database %s failure: %s\n", dbname, sqlite3_errmsg(db));
+		//printf("open database %s failure: %s\n", dbname, sqlite3_errmsg(db));
 		db_close(db);
 		return -12;
 	}
@@ -149,8 +149,8 @@ int main(int argc, char *argv[])
 
 	signal(SIGPIPE, sig_pipe);
 
-	now_time = time((time_t *)NULL);
-	last_time = now_time;
+	//now_time = time((time_t *)NULL);
+	//last_time = now_time;
 
 	while(1)
 	{	  
@@ -196,12 +196,8 @@ int main(int argc, char *argv[])
 		if( !g_link_flag ) //Failed to connect to the server
 		{
 			//------------ Put into database ---------------
-			//memset(buf_to_db, 0, sizeof(buf_to_db));
-			//snprintf(buf_to_db, sizeof(buf_to_db), "%d, '%s'", index, pack_str);
-			db_insert(db, tbname, pack);
+			db_insert(db, tbname, &pack);
 			printf("Successfully put data into the database [%s - %s]\n", dbname, tbname);
-
-			dbg_print("1: %d\n", index);
 
 			//------------ reconnection --------------------
 			if( !g_link_flag )
@@ -211,45 +207,44 @@ int main(int argc, char *argv[])
 					printf("Failed to connect to the server\n");
 					g_link_flag = 0;
 				}
-				g_link_flag = 1;
+				else
+					g_link_flag = 1;
 			}
 			
 			if( g_link_flag )
 			{
-				if(index>0)
+				dbg_print("relink%d\n", g_link_flag);
+
+				while(1)
 				{
-					dbg_print("relink%d\n", g_link_flag);
-
-					for(int i=index; i>0; i--)
+					now_time = time((time_t *)NULL);
+					if( (now_time-last_time) > sample_intv ) 
 					{
-						now_time = time((time_t *)NULL);
-						if( (now_time-last_time) > sample_intv ) 
-						{
-							last_time = now_time;
-							timeout_flag = 1;
-							break;
-						}
-
-						if( socket_write(cli_infor_t.fd, buf_to_db, strlen(pack_str)) < 0 )
-						{
-							g_link_flag = 0;
-							break;
-						}
-						
-						if(g_link_flag)
-						{
-							//Delete the data from the database
-							//memset(buf_to_db, 0, sizeof(buf_to_db));
-							//snprintf(buf_to_db, sizeof(buf_to_db), "id=%d", index);
-							db_remove(db, tbname);
-						}
-
-						if(index>0)  index--;
-						if(index==0)  break;
+						last_time = now_time;
+						timeout_flag = 1;
+						break;
 					}
-				} 
-			}
 
+					if( db_query(db, tbname, &pack)<0 )
+					{
+						printf("get first data from database[%s] table[%s] failure!\n", dbname, tbname);
+						break;
+					}
+					memset(buf_to_db, 0, sizeof(buf_to_db));
+					pack_data(&pack, buf_to_db, sizeof(buf_to_db));
+
+					if( socket_write(cli_infor_t.fd, buf_to_db, strlen(pack_str)) < 0 )
+					{
+						g_link_flag = 0;
+						break;
+					}
+					if( db_remove(db, tbname)<0 )
+					{
+						printf("delete data from database[%s] table[%s] failure!\n", dbname, tbname);
+						continue;
+					}
+				}
+			}
 		}
 
 		dbg_print("again %d\n", g_link_flag);
