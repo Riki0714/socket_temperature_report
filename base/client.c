@@ -196,9 +196,9 @@ int main(int argc, char *argv[])
 		if( !g_link_flag ) //Failed to connect to the server
 		{
 			//------------ Put into database ---------------
-			memset(buf_to_db, 0, sizeof(buf_to_db));
-			snprintf(buf_to_db, sizeof(buf_to_db), "%d, '%s'", index, pack_str);
-			db_insert(db, tbname, buf_to_db);
+			//memset(buf_to_db, 0, sizeof(buf_to_db));
+			//snprintf(buf_to_db, sizeof(buf_to_db), "%d, '%s'", index, pack_str);
+			db_insert(db, tbname, pack);
 			printf("Successfully put data into the database [%s - %s]\n", dbname, tbname);
 
 			dbg_print("1: %d\n", index);
@@ -239,9 +239,9 @@ int main(int argc, char *argv[])
 						if(g_link_flag)
 						{
 							//Delete the data from the database
-							memset(buf_to_db, 0, sizeof(buf_to_db));
-							snprintf(buf_to_db, sizeof(buf_to_db), "id=%d", index);
-							db_remove(db, tbname, buf_to_db);
+							//memset(buf_to_db, 0, sizeof(buf_to_db));
+							//snprintf(buf_to_db, sizeof(buf_to_db), "id=%d", index);
+							db_remove(db, tbname);
 						}
 
 						if(index>0)  index--;

@@ -25,11 +25,12 @@
 #define FIND	7
 
 
-int db_open(sqlite3 *db, char *dbname, char *tbname);
+int db_open(sqlite3 **db, char *dbname, char *tbname);
+int tb_create(sqlite3 *db, char *tbName);
+int db_insert(sqlite3 *db, char *tbName, packet_t *pack);
+int db_query(sqlite3 *db, char *tbName, packet_t *pack);
+int db_remove(sqlite3 *db, char *tbName);
 int db_close(sqlite3 *db);
-int tb_create(sqlite3 *db, char *tbName, char *data);
-int db_remove(sqlite3 *db, char *tbName, char *data);
-int db_insert(sqlite3 *db, char *tbName, char *data);
 int sql_op(sqlite3 *db, char *tbName, int op, char *data);
 
 #endif

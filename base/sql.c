@@ -12,79 +12,152 @@
  ********************************************************************************/
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "sqlite3.h"
+#include "packet.h"
 #include "sql.h"
 
 
 #define LEN 256
 
-int db_open(sqlite3 *db, char *dbname, char *tbName)
+int db_open(sqlite3 **db, char *dbname, char *tbName)
 {
 	int rv=-1;
 
-	rv = sqlite3_open(dbname, &db);
-	if(rv)
+	rv = sqlite3_open(dbname, db);
+	if( rv )
 	{   
-		printf("open database %s failure: %s\n", dbname, sqlite3_errmsg(db));
-		sqlite3_close(db);
-		return -12;
+		printf("open database[%s] failure: %s\n", dbname, sqlite3_errmsg(*db));
+		sqlite3_close(*db);
+		return -1;
 	}   
+	//sql_op(db, tbName, CREATE, "DEVSN char, TIME char, TEMPER float");
 
-	tb_create(db, tbName, "id int, content char");
+	if( tb_create(*db, tbName) < 0 )
+		return -2;
+	
+	return 0;
+}
+
+int tb_create(sqlite3 *db, char *tbName)
+{
+	char    str_tmp[LEN] = {0};
+	char    str[LEN] = {0};
+	int     rv = -1;
+	char	*errmsg = NULL;
+
+	snprintf(str_tmp, LEN-1, "CREATE TABLE IF NOT EXISTS %s(DEVSN CHAR, TIME CHAR, TEMPER FLOAT);", tbName);
+
+	//snprintf(str_tmp, LEN-1, "CREATE TABLE %s", tbName);
+	//strncat(str_tmp, "(", sizeof(str_tmp)-strlen(str_tmp)   );  
+	//snprintf(str, LEN-1, "%s%s);", str_tmp, "DEVSN CHAR, TIME CHAR, TEMPER FLOAT");
+	//rv = sqlite3_exec(db, str, NULL, NULL, &errmsg);
+
+	rv = sqlite3_exec(db, str_tmp, NULL, NULL, &errmsg);
+	if( rv )
+	{
+		printf("create or open table failure: %s\n", errmsg);
+		sqlite3_free(errmsg);
+		return -1;
+	}
+
+	return 0;
+}
+
+int db_insert(sqlite3 *db, char *tbName, packet_t *pack)
+{
+	char	str_tmp[LEN] = {0};
+	char	*errmsg = NULL;
+	int 	rv = -1;
+
+	snprintf(str_tmp, LEN-1, "INSERT INTO %s(DEVSN, TIME, TEMPER) VALUES('%s', '%s', '%.2f');", tbName, pack->devsn, pack->time, pack->temper);
+	
+	rv = sqlite3_exec(db, str_tmp, NULL, NULL, &errmsg);
+	if( rv )
+	{
+		printf("insert data into table[%s] failure: %s\n", tbName, errmsg);
+		sqlite3_free(errmsg);
+		return -1;
+	}
+			
+	return 0;
+}
+
+int db_query(sqlite3 *db, char *tbName, packet_t *pack)
+{
+	char	str_tmp[LEN] = {0};
+	char	*errmsg = NULL;
+	char	**query_result = NULL;
+	int		nrow = 0;
+	int 	ncolumn = 0;
+	int 	rv = -1;
+
+	snprintf(str_tmp, LEN-1, "SELECT * FROM  %s WHERE TIME IN (SELECT TIME FROM %s ORDER BY TIME ASC LIMIT 1);", tbName, tbName);
+	rv = sqlite3_get_table(db, str_tmp, &query_result, &nrow, &ncolumn, &errmsg);
+
+	if( rv!=0 )
+	{
+		printf("insert data into table[%s] failure: %s\n", tbName, errmsg);
+		sqlite3_free(errmsg);
+		return -1;
+	}
+	if( nrow==0 )
+	{
+		printf("there is no data in the database!\n");
+		return -2;
+	}
+
+	//for(int i=3; i<(nrow+1)*ncolumn; i++)
+	strncpy(pack->devsn, query_result[3], 32);
+	strncpy(pack->time, query_result[4], 32);
+	pack->temper = atof(query_result[5]);
+
 	return 0;
 }
 
 int db_close(sqlite3 *db)
 {
-	if( sqlite3_close(db) !=0 )
+	int rv = -1;
+
+	while(1)
 	{
-		printf("close database failure!\n");
-		return -1;
+		rv = sqlite3_close(db);
+		if( rv==SQLITE_BUSY )
+		{
+			printf("There are still queries not completed.Disable closing!\n");
+			continue;
+		}
+		else if( rv )
+		{
+			printf("close database[%s] failure: %s\n", sqlite3_errmsg(db));
+			return -1;
+		}
+		else 
+			break;
 	}
 	return 0;
 }
 
-int tb_create(sqlite3 *db, char *tbName, char *data)
+int db_remove(sqlite3 *db, char *tbName)
 {
-	char    str_tmp[LEN]={0};
-	char    str[LEN]={0};
-	int     i=0;
-	char	 *errmsg=NULL;
+	char	str_tmp[LEN] = {0};
+	char	*errmsg = NULL;
+	int		rv = -1;
 
-	snprintf(str_tmp, LEN-1, "CREATE TABLE %s", tbName);
-	strncat(str_tmp, "(", sizeof(str_tmp)-strlen(str_tmp)   );  
-
-	snprintf(str, LEN-1, "%s%s);", str_tmp, data);
-	sqlite3_exec(db, str, NULL, NULL, &errmsg);
-
-	return 0;
-}
-
-int db_remove(sqlite3 *db, char *tbName, char *data)
-{
-	char	str[LEN]={0};
-	char	 *errmsg=NULL;
-
-	snprintf(str, LEN-1, "DELETE FROM %s where %s", tbName, data);
-	strncat(str, ";", sizeof(str)-strlen(str) );
-	sqlite3_exec(db, str, NULL, NULL, &errmsg);
+	snprintf(str_tmp, LEN-1, "DELETE FROM %s WHERE TIME IN (SELECT TIME FROM %s ORDER BY TIME ASC limit 1);", tbName, tbName);
+	
+	rv = sqlite3_exec(db, str_tmp, NULL, NULL, &errmsg);
+	if( rv )
+	{
+		printf("delete data from database table[%s] failure: %s\n", tbName, errmsg);
+		sqlite3_free(errmsg);
+		return -1;
+	}
 
 	return 0;
 }
-
-int db_insert(sqlite3 *db, char *tbName, char *data)
-{	
-	char	str[LEN]={0};
-	char	 *errmsg=NULL;
-
-	snprintf(str, LEN-1, "INSERT INTO %s VALUES(%s);", tbName, data);
-	sqlite3_exec(db, str, NULL, NULL, &errmsg);
-
-	return 0;
-}
-
 
 int sql_op(sqlite3 *db, char *tbName, int op, char *data)
 {
@@ -99,11 +172,12 @@ int sql_op(sqlite3 *db, char *tbName, int op, char *data)
 			int		i=0;
 
 			snprintf(str_tmp, LEN-1, "CREATE TABLE %s", tbName);
-			strncat(  str_tmp, "(", sizeof(str_tmp)-strlen(str_tmp)   );
+			strncat( str_tmp, "(", sizeof(str_tmp)-strlen(str_tmp)   );
 
 			snprintf(str, LEN-1, "%s%s);", str_tmp, data);
 			sqlite3_exec(db, str, NULL, NULL, &errmsg);
-			
+	
+			printf("hei: %s\n", str);
 			break;
 		}
 
@@ -177,45 +251,35 @@ int sql_op(sqlite3 *db, char *tbName, int op, char *data)
 	return 0;
 }
 
-  /*  
+/*  
 int main()
 {
-	sqlite3 *db=NULL;
-	int len=0;
-	char	dbname[32]="haha.db";
-	char	tbname[32]="table";
-	char	str1[LEN] = {0};
-	char	*errmsg=NULL;
-	char    buf[32]="--haha--";
-	char    buf1[32]={0};
-	char	data[LEN] = "id int, name char";
+	char		*dbname="test.db";
+	char		*tbname="TEMP";
+	sqlite3 	*db=NULL;
+	packet_t	pack;
+	int			rv=-1;
+	char		str[LEN]={0};
 
-	len = sqlite3_open(dbname, &db);
-	printf("haha\n");
+	memset(&pack, 0, sizeof(packet_t));
+	strncpy(pack.devsn, "d20211", TEMP_STR_LEN);
+	strncpy(pack.time, "2002", TEMP_STR_LEN);
+	pack.temper = 22.99;
 
-	sql_op(db, "table8", CREATE, "id int, name char");
-	snprintf(buf1, sizeof(buf1), "1, '%s'", buf);
-	printf("%s", buf1);
-	sql_op(db, "table8", INSERT, buf1);
-	//sql_op(db, "table8", INSERT, "1, '--haha--'");
-	//sql_op(db, "table8", FIND, NULL);
-	
-	//snprintf(str1, LEN-1, "CREATE TABLE table2(%s);", data);
-	//sqlite3_exec(db, str1, NULL, NULL, &errmsg);
-	
-	//snprintf(str1, LEN-1, "CREATE TABLE table2(%s);", data);
-	//sqlite3_exec(db, str1, NULL, NULL, &errmsg);
-			
-	//sqlite3_exec(db, "CREATE TABLE table1(id int, name char);", NULL, NULL, &errmsg);
-			
-	//sql_op(db, tbname, CREATE, "ID INTEDER PRIMARY KEY, SensorID INTEGER");
-	
-	//sql_op(db, "table2", INSERT, "NULL, 2");
-	//sql_op(db, "stu", DROP, NULL);
-	//sql_op(db, "table2", DELETE, "name=2");
+	rv = db_open(&db, dbname, tbname);
+	//sqlite3_open(dbname, &db);
+	//tb_create(db, tbname);
+	//sql_op(db, tbname, CREATE, "DEVSN char, TIME char, TEMPER float");
+	printf("sa\n");
+	db_insert(db, tbname, &pack);
 
-	sqlite3_close(db);
+	strncpy(pack.time, "2005", TEMP_STR_LEN);
+	pack.temper = 30.24;
+	db_insert(db, tbname, &pack);
+
+	db_query(db, tbname, &pack);
+	//db_remove(db, tbname);
+
 	return 0;
 }
 */
-
