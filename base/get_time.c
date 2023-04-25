@@ -19,13 +19,17 @@
 
 int get_time(char *time_str, int size)
 {
-	time_t time_stamp;
-    struct tm  *tm;
+	time_t 			time_stamp;
+    struct tm  		*tm = NULL;
 
     time_stamp = time((time_t *)NULL);
+	//time(&time_stamp);
 	tm = localtime(&time_stamp); 
-					      
-	strftime(time_str, size, "%Y-%m-%d", tm);
+					
+	if( tm!=NULL )
+		strftime(time_str, size, "%Y-%m-%d", tm);
+	else
+		return -1;
 
 	return 1;
 }
