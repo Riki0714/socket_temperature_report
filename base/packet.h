@@ -23,6 +23,7 @@ typedef struct  packet_s{
 } packet_t;
 
 int pack_data(packet_t *pack, char *buf, int size);
+int unpack_data(packet_t *pack, char *data, int size);
 
 #endif
 

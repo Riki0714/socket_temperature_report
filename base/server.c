@@ -225,6 +225,7 @@ int main(int argc, char *argv[])
 					printf("receive %d bytes from client[%d] and echo it:'%s'\n", rv, event_array[i].data.fd, buf_rece);
 
 					//Put the data into the database
+					unpack_data(&pack, buf_rece, BUF_LEN);
 					db_insert(db, tb_name, &pack);
 					printf("Successfully put the data into the database [%s - %s]\n", db_name, tb_name);
 				}

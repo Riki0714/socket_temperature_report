@@ -27,7 +27,7 @@ int get_time(char *time_str, int size)
 	tm = localtime(&time_stamp); 
 					
 	if( tm!=NULL )
-		strftime(time_str, size, "%Y-%m-%d", tm);
+		strftime(time_str, size, "%Y-%m-%d-%R", tm);
 	else
 		return -1;
 
@@ -51,4 +51,14 @@ int get_time_pipe(char *buf, int size)
 	return 1;
 }
 
+/*
+int main()
+{
+	char	time[32]={0};
 
+	get_time(time, 32);
+	printf("%s", time);
+
+	return 0;
+}
+*/
