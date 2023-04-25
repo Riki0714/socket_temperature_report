@@ -34,7 +34,10 @@
 //#define SER_IP		"0.0.0.0"
 //#define BACKLOG		13
 
-#define SO_NOSIGPIPE   0x1022
+#define SO_NOSIGPIPE	0x1022
+#define	IP_LEN			32
+
+char g_dns_ipBuf[10][32];
 
 int socket_init(sock_infor *infor_t, struct sockaddr_in *addr)
 {
@@ -72,7 +75,7 @@ int socket_bind(int fd, struct sockaddr *addr, int len)
 	if( bind(fd, addr, len) < 0 )
 	{
 		printf("bind failure: %s\n", strerror(errno));
-		close(fd);
+		//close(fd);
 
 		return -1;
 	}
@@ -85,7 +88,7 @@ int socket_listen(int fd, int backlog)
 	if( listen(fd, backlog) < 0 )
 	{
 		printf("listen failure: %s\n", strerror(errno));
-		close(fd);
+		//close(fd);
 
 		return -1;
 	}
@@ -98,7 +101,7 @@ int socket_connect(int fd, struct sockaddr *addr, int len)
 	if( connect(fd, addr, len) < 0)
 	{
 		printf("connect failure: %s\n", strerror(errno));
-		close(fd);
+		//close(fd);
 
 		return -1;
 	}
@@ -128,7 +131,7 @@ int socket_write(int fd, char *data, int bytes)
 			else
 			{
 				printf("write %d bytes data back to client[%d] failure: %s\n", bytes, fd, strerror(errno));
-				close(fd);
+			//	close(fd);
 				return -1;
 			}
 		}
@@ -149,12 +152,14 @@ int socket_read(int fd, char *buf, int bytes)
 	if( (rv=read(fd, buf, bytes)) < 0  )
 	{
 		printf("read data from server[%d] failure: %s\n", fd, strerror(errno));
-		close(fd);
+		return -1;
+		//close(fd);
 	}
 	else if( rv==0 )
 	{
 		printf("the connection to the server[%d] is disconnected\n", fd);
-		close(fd);
+		return -2;
+		//close(fd);
 	}
 	else
 	{
@@ -176,7 +181,7 @@ int server_connect(sock_infor *serv_infor_t)
 	{
 		printf("server init failure!\n");
 		rv = -51;
-	//	goto Exit1;
+		goto Exit1;
 	}
 	setsockopt( serv_infor_t->fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
 
@@ -184,26 +189,26 @@ int server_connect(sock_infor *serv_infor_t)
 	{
 		printf("bind failure!\n");
 		rv = -52;
-	//	goto Exit1;
+		goto Exit1;
 	}
 
 	if( socket_listen( (*serv_infor_t).fd, serv_infor_t->backlog) < 0)
 	{
 		printf("listen failure!\n");
 		rv = -53;
-	//	goto Exit1;
+		goto Exit1;
 	}
 
 	printf("The server has been successfully initialized!\n");
 	rv = 0;
 
-/*  
+
 Exit1:
 	if( rv<0 )
 		close( (*serv_infor_t).fd );
 	else
 		rv = 0;
-*/
+
 	return rv;
 }
 
@@ -211,30 +216,54 @@ int client_connect(sock_infor *cli_infor_t)
 {
 	int 					rv = 0;
 	struct sockaddr_in	 	cli_addr;
+	in_addr_t				addr = inet_addr(cli_infor_t->fd);
 
-	if( socket_init( cli_infor_t, &cli_addr) < 0 )
+	if( addr<0 )
 	{
-		printf("client init failure!\n");
-		rv = -55;
-		//goto Exit1;
+		int	i=0;
+		socket_dns(cli_infor_t->ip); //dns
+
+		while( g_dns_ipBuf[i][0]!='\0' )
+		{
+			memset(cli_infor_t->ip, 0, IP_LEN);
+			strncpy(cli_infor_t->ip, g_dns_ipBuf[i++], IP_LEN);
+
+			if( socket_init( cli_infor_t, &cli_addr) < 0 )
+			{
+				printf("client init failure!\n");
+				rv = -58;
+				continue;
+			}
+			else 
+				break;
+		}
+	}
+	else
+	{
+		if( socket_init( cli_infor_t, &cli_addr) < 0 )
+		{
+			printf("client init failure!\n");
+			rv = -55;
+			goto Exit1;
+		}
 	}
 
 	if( connect( cli_infor_t->fd, (struct sockaddr *)&cli_addr, sizeof(cli_addr))< 0)
 	{
 		printf("connect failure!\n");
 		rv = -56;
-		//goto Exit1;
+		goto Exit1;
 	}
 
 	printf("The client has been successfully initialized!\n");
 
-/*  
+ 
 Exit1:
 	if( rv<0 )
 		close( cli_infor_t->fd );
 	else
 		rv = 0;
-*/
+
 	return rv;
 }
 
@@ -249,14 +278,16 @@ void set_socket_rlimit(void)
 	printf("set socket open fd max count to %d\n", limit.rlim_max);
 }
 
-char *socket_dns(char *doname, int size)
+
+void socket_dns(char *doname)
 {
 	struct addrinfo     hints; 
 	struct addrinfo		*listp;
 	struct addrinfo		*p; 
-	char 				*ip;
+	char				ip[IP_LEN]={0};
 	int                 rv=-1;
-	int                 falgs = NI_NUMERICHOST;
+	int					i=0;
+	int                 flags = NI_NUMERICHOST;
 
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = AF_UNSPEC;
@@ -269,11 +300,15 @@ char *socket_dns(char *doname, int size)
 		printf("getaddrinfo error: %s", gai_strerror(rv));
 	}   
 
-	p = listp;
+	memset(g_dns_ipBuf, 0, sizeof(g_dns_ipBuf));
+	for( p=listp; p!=NULL; p=p->ai_next )
 	{   
-		getnameinfo(p->ai_addr, p->ai_addrlen, ip, size, NULL, 0, falgs);
-
+		memset(ip, 0, sizeof(ip));
+		getnameinfo(p->ai_addr, p->ai_addrlen, ip, IP_LEN, NULL, 0, flags);
+		strncpy(g_dns_ipBuf[i], ip, IP_LEN);
+		i++;
 	}   
+
 	freeaddrinfo(listp);
 	return  ip;
 }
@@ -327,9 +362,4 @@ int main(int argc, char *argv[])
 	return 0;
 }
 */
-
-
-
-
-
 

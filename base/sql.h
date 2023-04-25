@@ -16,13 +16,16 @@
 
 #include "sqlite3.h"
 
-#define	CREATE  1
-#define DROP	2
-#define INSERT	3
-#define DELETE	4
-#define SELECT	5
-#define UPDATE	6
-#define FIND	7
+#define	QUERY_ERROR	-1
+#define QUERY_NULL	-2
+
+#define	CREATE  	1
+#define DROP		2
+#define INSERT		3
+#define DELETE		4
+#define SELECT		5
+#define UPDATE		6
+#define FIND		7
 
 
 int db_open(sqlite3 **db, char *dbname, char *tbname);

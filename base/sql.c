@@ -101,12 +101,12 @@ int db_query(sqlite3 *db, char *tbName, packet_t *pack)
 	{
 		printf("insert data into table[%s] failure: %s\n", tbName, errmsg);
 		sqlite3_free(errmsg);
-		return -1;
+		return QUERY_ERROR;
 	}
 	if( nrow==0 )
 	{
 		printf("there is no data in the database!\n");
-		return -2;
+		return QUERY_NULL;
 	}
 
 	//for(int i=3; i<(nrow+1)*ncolumn; i++)

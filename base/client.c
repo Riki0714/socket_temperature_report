@@ -90,15 +90,7 @@ int main(int argc, char *argv[])
 		{
 			case 'i':
 			{
-				in_addr_t	addr=inet_addr(optarg);
-				if( addr<0 )
-				{
-					cli_infor_t.ip = socket_dns(optarg ,100); //dns
-				}
-				else
-				{
-					cli_infor_t.ip = optarg;
-				}
+				cli_infor_t.ip = optarg;
 				break;
 			}
 
@@ -225,9 +217,15 @@ int main(int argc, char *argv[])
 						break;
 					}
 
-					if( db_query(db, tbname, &pack)<0 )
+					rv = db_query(db, tbname, &pack);
+					if( rv==QUERY_ERROR )
 					{
 						printf("get first data from database[%s] table[%s] failure!\n", dbname, tbname);
+						break;
+					}
+					else if( rv==QUERY_NULL )
+					{
+						printf("there is no data in the database[%s] table[%s]\n", dbname, tbname);
 						break;
 					}
 					memset(buf_to_db, 0, sizeof(buf_to_db));
