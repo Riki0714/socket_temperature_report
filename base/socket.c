@@ -278,7 +278,6 @@ void set_socket_rlimit(void)
 	printf("set socket open fd max count to %d\n", limit.rlim_max);
 }
 
-
 void socket_dns(char *doname)
 {
 	struct addrinfo     hints; 

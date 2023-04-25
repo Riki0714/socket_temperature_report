@@ -64,8 +64,7 @@ int main(int argc, char *argv[])
 	char			buf_rece[STR_LEN] = {0}; 
 	char			buf_to_db[STR_LEN] = {0}; 
 
-	sqlite3			*db = NULL;
-	char			*errmsg = NULL;
+	sqlite3			*db = (sqlite3 *)&rv;
 	char			*dbname = BASENAME;
 	char			*tbname = TABLENAME;
 
