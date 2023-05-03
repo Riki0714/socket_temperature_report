@@ -122,7 +122,7 @@ int main(int argc, char *argv[])
 	}
 
 	//---------------- create dataBase  -----------------
-	db_open(&db, db_name, tb_name);
+	rv = db_open(&db, db_name, tb_name);
 	if( rv<0 )
 	{
 		db_close(db);

@@ -15,7 +15,7 @@ client:
 	@./cli.out -t2
 
 server:
-	@gcc -shared -fPIC -o libser.so server.c get_time.c socket.c timer.c sql.c
+	@gcc -shared -fPIC -o libser.so server.c get_time.c socket.c packet.c timer.c sql.c
 	@gcc ./server.c -o ser.out -I ./ -I ..sqlite3/install/include -lser -L ./ -lsqlite3 -L ../sqlite3/install/lib/
 #	./ser.out -i0.0.0.0 -p 6666
 	@./ser.out -p 7799 

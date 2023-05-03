@@ -21,6 +21,7 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <netinet/tcp.h>
+#include <netinet/in.h>
 #include <stdlib.h>
 #include <sys/signal.h>
 #include <sys/socket.h>
@@ -216,7 +217,7 @@ int client_connect(sock_infor *cli_infor_t)
 {
 	int 					rv = 0;
 	struct sockaddr_in	 	cli_addr;
-	in_addr_t				addr = inet_addr(cli_infor_t->fd);
+	in_addr_t				addr = inet_addr(cli_infor_t->ip);
 
 	if( addr<0 )
 	{
@@ -309,7 +310,6 @@ void socket_dns(char *doname)
 	}   
 
 	freeaddrinfo(listp);
-	return  ip;
 }
 
 

@@ -30,7 +30,7 @@ int  socket_read(int fd, char *buf, int bytes);
 int  server_connect(sock_infor *serv_infor_t); //Initialize the server
 int  client_connect(sock_infor *cli_infor_t); //The client tries the server
 void set_socket_rlimit(void); //set max open socket count
-char *socket_dns(char *doname, int size);
+void socket_dns(char *doname);
 
 #endif
 
