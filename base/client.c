@@ -245,6 +245,7 @@ int main(int argc, char *argv[])
 		}
 
 		dbg_print("again %d\n", g_link_flag);
+		printf("waiting...\n");
 	}
 
 //EXIT1:
