@@ -1,0 +1,21 @@
+#library
+.a
+,so
+
+#temporary files
+.out
+.o
+
+#shell script
+.sh
+
+#database
+.db
+
+#package
+.tar
+.tbz
+.tgz
+.gz
+.bz2
+
