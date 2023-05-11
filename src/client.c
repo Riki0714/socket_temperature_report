@@ -26,7 +26,7 @@
 #include "ds18b20.h"
 #include "packet.h"
 #include "socket.h"
-#include "sql.h"
+#include "database.h"
 #include "sqlite3.h"
 
 #define STR_LEN		128

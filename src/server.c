@@ -24,7 +24,7 @@
 
 #include "socket.h"
 #include "packet.h"
-#include "sql.h"
+#include "database.h"
 
 //#define  CONFIG_DEBUG	
 #include "debug.h"

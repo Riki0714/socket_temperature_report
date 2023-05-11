@@ -17,7 +17,7 @@
 
 #include "sqlite3.h"
 #include "packet.h"
-#include "sql.h"
+#include "database.h"
 
 
 #define LEN 			256
