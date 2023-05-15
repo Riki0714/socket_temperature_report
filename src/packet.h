@@ -14,11 +14,12 @@
 #ifndef _PACKET_H
 #define _PACKET_H
 
-#define TEMP_STR_LEN  32
+#define DEVSN_SIZE	16
+#define TIME_SIZE	10
 
 typedef struct  packet_s{
-	char        devsn[TEMP_STR_LEN];
-	char        time[TEMP_STR_LEN];
+	char        devsn[DEVSN_SIZE];
+	char        time[TIME_SIZE];
 	float       temper;
 } packet_t;
 

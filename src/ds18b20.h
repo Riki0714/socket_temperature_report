@@ -17,7 +17,7 @@
 #include "packet.h"
 
 int sample_temperature(packet_t *pack);
-int ds18b20_get_temperature(char *all_path, float *temperature, int size);
+int ds18b20_get_temperature(packet_t *pack);
 int get_devsn(char *serial_number, int size);
 
 #endif

@@ -43,7 +43,7 @@
 int socket_init(socket_t *sock, char *host, int port)
 {
 	sock->fd = -1;
-	strcpy(sock->host, host);
+	strncpy(sock->host, host, 64);
 	sock->port = port;
 	sock->connected = 0;  
 	
@@ -52,8 +52,11 @@ int socket_init(socket_t *sock, char *host, int port)
 
 int socket_close(socket_t *sock)
 {
-	close(sock->fd);
-	sock->fd = -1;
+	if( sock->fd>0 )
+	{
+		close(sock->fd);
+		sock->fd = -1;
+	}
 
 	sock->connected = 0;
 
@@ -67,7 +70,7 @@ int socket_diag(socket_t *sock)
 
 	if(sock->fd <= 0 )
 	{
-		return -1;
+		return 0;
 	}
 
 	getsockopt(sock->fd, IPPROTO_TCP, TCP_INFO, &info, (socklen_t *)&size);
@@ -124,10 +127,11 @@ int socket_send_packet(socket_t *sock, packet_t *pack)
 {
 	char	pack_buf[PACK_BUF_LEN]={0};
 
-	pack_data(pack, pack_buf, PACK_BUF_LEN);
-	if( socket_write(sock, pack_buf, PACK_BUF_LEN) < 0 )
+	pack_data(pack, pack_buf, strlen(pack_buf));
+	if( socket_write(sock, pack_buf, strlen(pack_buf)) < 0 )
 	{
 		printf("write data to server failure\n");
+		socket_close(sock);
 		return -1;
 	}
 
@@ -369,55 +373,6 @@ void socket_dns(char *doname)
 	}   
 
 	freeaddrinfo(listp);
-}
-*/
-
-/*
-int main(int argc, char *argv[])
-{
-	sock_infor				cli_infor_t;
-	int						rv = -20;
-	char					buf[64]="hello!\n";
-
-	memset(&cli_infor_t, 0, sizeof(cli_infor_t));
-	printf("%d\n", sizeof(cli_infor_t));
-	cli_infor_t.ip = "127.0.0.1";
-	cli_infor_t.port = 8888;
-	cli_infor_t.fd = -1;
-
-	printf("wu%d\n", cli_infor_t.fd);
-	if( client_init(&cli_infor_t) < 0)
-	{
-		printf("client initialization error!\n");
-		return -23;
-	}
-
-	printf("hei%d\n", cli_infor_t.fd);
-		printf("Start Accept...\n");
-
-		if( write(cli_infor_t.fd, buf, strlen(buf)) < 0 )
-		{
-			printf("Write %d bytes data back to client[%d] failure: %s\n", rv, cli_infor_t.fd, strerror(errno));
-			close(cli_infor_t.fd);
-		}
-		
-		memset(buf, 0, sizeof(buf));
-		if( (rv=read(cli_infor_t.fd, buf, sizeof(buf))) < 0)
-		{
-			printf("Read data from client socket[%d] failure: %s\n", cli_infor_t.fd, strerror(errno));
-			close(cli_infor_t.fd);
-			return -1;
-		}
-		else if( rv == 0 )
-		{
-			printf("client socket[%d] disconnected\n", cli_infor_t.fd);
-			close(cli_infor_t.fd);
-			return -2;
-		}
-		printf("read %d bytes data from client[%d] and echo it back: '%s'\n", rv, cli_infor_t.fd, buf);
-		
-
-	return 0;
 }
 */
 

@@ -77,11 +77,15 @@ int get_devsn(char *serial_number, int size)
 	return 1;
 }
 
-int ds18b20_get_temperature(char *all_path, float *temperature, int size)
+int ds18b20_get_temperature(packet_t *pack)
 {
 	int		 fd = -1;
 	char     buf[128];
 	char	*ptr = NULL;
+	char	 all_path[128] = W1_PATH;
+
+	strncat(all_path, pack->devsn, (sizeof(all_path)-1-strlen(all_path)) );
+	strncat(all_path, PATH_OTHER, (sizeof(all_path)-1-strlen(all_path)) );
 
 	if( (fd=open(all_path, O_RDONLY)) < 0 )
 	{
@@ -108,38 +112,34 @@ int ds18b20_get_temperature(char *all_path, float *temperature, int size)
 	ptr += 2;  //skip "t="
 	dbg_print("%s\n", ptr);
 
-	*temperature = atof(ptr)/1000;
-	dbg_print("%lf\n", temperature);
+	pack->temper = atof(ptr)/1000;
+	dbg_print("%lf\n", pack->temper);
 
 	return 1;
 }
 
 int sample_temperature(packet_t *pack)
 {
-	char		all_path[128] = W1_PATH;
-
 	memset(pack, 0, sizeof(packet_t));
-	if( get_devsn(pack->devsn, TEMP_STR_LEN)<0 )  
+	if( get_devsn(pack->devsn, DEVSN_SIZE)<0 )  
 	{
 		printf("get device serial number error!\n");
+		return -1;
+	}
+
+	if( ds18b20_get_temperature(pack) < 0 )
+	{
+		printf("get temperature failure\n");
+		return -2;
+	}
+
+	if( get_time(pack->time, TIME_SIZE) < 0 )
+	{
+		printf("get time failure!\n");
 		return -3;
 	}
 
-	strncat(all_path, pack->devsn, (sizeof(all_path)-1-strlen(all_path)) );
-	strncat(all_path, PATH_OTHER, (sizeof(all_path)-1-strlen(all_path)) );
-	if(ds18b20_get_temperature(all_path, &(pack->temper), TEMP_STR_LEN)<0)
-	{
-		printf("get temperature failure\n");
-		return -4;
-	}
-
-	if( get_time(pack->time, TEMP_STR_LEN) < 0 )
-	{
-		printf("get time failure!\n");
-		return -5;
-	}
-
-	return 1;
+	return 0;
 }
 
 

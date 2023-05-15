@@ -69,18 +69,18 @@ int main(int argc, char *argv[])
 	//-------------- Command line argument parsing  --------------
 	int				ch = -1; 
 	struct option	opts[] = {
-		{"hostname",	optional_argument,  NULL, 'h'},
+		{"hostname",	optional_argument,  NULL, 'H'},
 		{"port",		optional_argument,  NULL, 'p'},
 		{"sample_intv",	optional_argument,  NULL, 't'},
-		{"help",		no_argument,        NULL, 'H'},
+		{"help",		no_argument,        NULL, 'h'},
 		{0, 0, 0, 0}
 	};
 
-	while( (ch=getopt_long(argc, argv, "h::p::t::H", opts, NULL)) != -1 )
+	while( (ch=getopt_long(argc, argv, "H::p::t::h", opts, NULL)) != -1 )
 	{
 		switch(ch)
 		{
-			case 'h':
+			case 'H':
 				hostname = optarg;
 				break;
 
@@ -92,7 +92,7 @@ int main(int argc, char *argv[])
 				sample_intv = atoi(optarg);
 				break;
 
-			case 'H':
+			case 'h':
 				print_usage(argv[0]);
 				return 0;
 		}
@@ -126,7 +126,7 @@ int main(int argc, char *argv[])
 			last_time = now_time;
 			if( !sample_temperature(&pack) )
 			{
-				printf("get temperature faliure!\n");
+				dbg_print("get temperature faliure!\n");
 				continue;
 			}
 			sample_flag = 1;
@@ -134,15 +134,9 @@ int main(int argc, char *argv[])
 		
 		//------------ Connect or not --------------
 		rv = socket_diag(&sock);
-		if( rv < 0  )
+		if( rv == 0  )
 		{
-			dbg_print("Can't determine whether socket is connected %d\n", rv);
-			//return -3;
-		}
-
-		//------------ reconnect ------------
-		if( !sock.connected ) 
-		{
+			dbg_printf("disconnected! %d\n", rv);
 			if( (rv=socket_connect(&sock)) < 0 )
 			{
 				dbg_print("Failed to connect to the server %d\n", rv);
@@ -158,7 +152,7 @@ int main(int argc, char *argv[])
 				if( db_insert(&pack) < 0 )
 				{
 					printf("Put data into database failure!\n");
-					return -5;
+					continue;
 				}
 				dbg_print("Successfully put data into the database [%s]\n", dbname);
 				sample_flag = 0;
@@ -172,11 +166,12 @@ int main(int argc, char *argv[])
 			sample_flag = 0;
 			if( socket_send_packet(&sock, &pack) < 0)
 			{
+				socket_close(&sock);
 				printf("Faild to send data to the server\n");
 				if( db_insert(&pack) < 0 )
 				{
 					printf("Put data into database failure!\n");
-					return -6;
+					continue;
 				}
 			}
 		}
@@ -205,6 +200,7 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	socket_close(&sock);
 	db_close();
 	return 0;
 }
